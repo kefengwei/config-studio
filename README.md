@@ -169,17 +169,26 @@ http://127.0.0.1:5179/#/Config_Task/Task_DailyTask_Progress
 ```
 config-studio/
 ├─ dist/                  ← 交付物，整个目录可以拷走
-│  ├─ index.html          ← 唯一入口页面
-│  ├─ assets/             ← app.css + 8 个 js + semantics.json
+│  ├─ index.html          ← 唯一入口页面（浏览器版）
+│  ├─ assets/             ← app.css + js + semantics.json
 │  ├─ server/server.ps1   ← 本地服务（读文件 / 写文件 / 备份 / 撤销）
 │  └─ 启动.bat
 ├─ src/                   ← 源码
 │  ├─ index.html
-│  ├─ js/                 ← app / edit / column-editor / struct-editor / data / json-edit / json-diff / layout
+│  ├─ js/                 ← app / edit / column-editor / struct-editor / ref-picker / git /
+│  │                        data / json-edit / json-diff / layout / shortcuts
 │  └─ styles/             ← input.css（Tailwind 入口）+ components.css（组件样式）
+├─ src-tauri/             ← 桌面版（Tauri 2 / Rust）
+│  ├─ src/lib.rs          ← 启动界面 + 配置文件读写 + 备份命令
+│  ├─ src/git.rs          ← git 面板的后端（info/status/branches/checkout/diff/log/pull/push）
+│  └─ tauri.conf.json     ← 把 dist/ 内嵌进 exe
 ├─ scripts/
 │  ├─ build.mjs           ← 一键构建：语义层 → CSS → 拷 js → 拷页面
-│  └─ build-semantics.mjs ← 读 C# 配置类 + 枚举 + 数据，生成 semantics.json
+│  ├─ build-semantics.mjs ← 读 C# 配置类 + 枚举 + 数据，生成 semantics.json
+│  ├─ check-classes.mjs   ← 构建时检查 Tailwind 原子类是否撞了组件类名
+│  ├─ shot.mjs            ← 调试：headless Edge 打开 URL 截图
+│  ├─ cdp.mjs             ← 调试：连桌面版（9333 端口）执行一段 JS
+│  └─ cdp-shot.mjs        ← 调试：抓桌面版当前视口
 └─ package.json
 ```
 
@@ -260,12 +269,19 @@ cd config-studio && npm run build
 
 ## 编辑与删除（都先进队列）
 
-点任意一行 → 右侧详情头部有 `编辑本行` / `删除本行`。两者都**不会立刻写文件**：
+点任意一行 → 右侧详情头部有 `编辑本行` / `删除本行`；表格上方的工具栏还有 `＋ 新增行`。三者都**不会立刻写文件**：
 
 | 操作 | 表格里的样子 | 怎么落盘 |
 |---|---|---|
 | 改字段 | 行名前面出现橙色圆点 | 底部条「N 行待保存」→ 预览并保存 |
 | 删整行 | 整行划掉、红底 | 底部条「N 行待删除」→ 预览并保存 |
+| 新增整行 | 行还没进表格，详情区显示「已加入新增队列」 | 底部条「+N 行待新增」→ 预览并保存 |
+
+新增行的规则：
+
+- `RowName` 必填、不能含空格、表内不能重名（重名会当场拦下，不会进队列）。
+- 除 `RowName` 外的字段可以留空，之后再编辑；新增的行会追加到该表 `Items` 数组末尾。
+- 详情区提示「可以继续新增下一行」——连点 `＋ 新增行` 可以连续录入，全部进同一个队列。
 
 - 改与删可以混在一起，一次 diff、一次写盘。删行前会扫全库，把「会影响多少处引用」写进 diff 弹窗的提示区（不拦截，你自己判断）。
 - 队列按表分组，但**支持跨表一次保存**：在 Config_Task 改一行、再到 Config_CatalogItem 删一行，点一次「预览并保存」会弹出分表 diff（每张表一段，带各自字节变化），确认后逐表写盘。
@@ -284,6 +300,29 @@ cd config-studio && npm run build
 | `Delete` | 删除选中行（进待保存队列，不直接写文件） | 只读详情、已选中一行 |
 
 `E` / `Delete` 在输入框、搜索框里打字时不会触发；行已经进删除队列后也不再触发（详情里只剩「撤销删除」）。
+
+新增行表单里同样可用：`Ctrl`/`Cmd` + `Enter` 或 `Ctrl`/`Cmd` + `S` = 加入队列，`Esc` = 取消。
+
+## Git 面板（仅桌面版）
+
+打开的那个目录如果落在 git 仓库里（往上找 `git rev-parse --show-toplevel` 能找到），顶栏右上角会出现一个分支图标按钮，title 会写成 `Git · <当前分支> · N 个变更`。点开从右侧滑出面板：
+
+| 区域 | 内容 |
+|---|---|
+| 顶部 | 仓库路径、当前分支（点开是分支列表）、与上游的 `↑N` / `↓N`、远端地址 |
+| 按钮 | 拉取（`git pull --ff-only`）、推送（`git push`）、刷新 |
+| 变更 | 每个改动文件一行（状态标签 + 路径） |
+| 文件 diff | 点变更文件，**在抽屉左侧弹出宽面板**（最多 1100px），逐行染色显示增删；↑ / ↓ 在变更文件之间切换，Esc 先关 diff、再关抽屉 |
+| 新增文件 | 未跟踪的文件也能看：显示成「── 新增文件 ──」+ 完整内容（内部用 `git diff --no-index -- /dev/null <文件>` 比出来） |
+| 历史 | 最近 60 条提交（短 hash、作者、时间、说明） |
+
+- **打开面板只查「分支 + 变更」两项**（约 0.2 秒）；提交历史要切到「历史」页才去跑 `git log`，一次只加载一次。分支列表同理，点开选择器才拉。
+- 所有 git 调用都带 `CREATE_NO_WINDOW`，所以你不会在屏幕上看到一闪一闪的命令行黑框。
+
+- 切分支：点当前分支 → 搜索框 + 本地/远程分组列表，当前分支标「当前」。选远程分支时会自动 `checkout -b <名> --track <远程>` 建跟踪分支。
+- 工具**只做**拉取、推送、切分支这三件基本操作。不做 merge / rebase / reset / 提交 / 强制推送——合并冲突、历史改写这类事请回命令行。
+- 拉取用 `--ff-only`：本地有分叉时直接报错并显示 git 的原始输出，不会偷偷生成 merge commit。
+- 浏览器版（`启动.bat`）没有这个按钮：它拿不到 shell 权限。
 
 ## 数据安全
 

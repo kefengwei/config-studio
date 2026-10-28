@@ -1,13 +1,13 @@
 {
- "generatedAt": "2026-10-28T05:39:02.683Z",
+ "generatedAt": "2026-10-28T07:21:13.972Z",
  "source": {
   "configDir": "configs",
   "schemaDir": "json-schemas",
   "csharpDir": "G:/Github/DoriDori.Backend/src/DoriDori.Backend.Config"
  },
  "stats": {
-  "tables": 95,
-  "rows": 7607,
+  "tables": 96,
+  "rows": 7565,
   "actuators": 176,
   "refFields": 60,
   "enums": 35,
@@ -281,8 +281,8 @@
   "TimeControlRowName": {
    "target": "Config_TimeControl",
    "confidence": 1,
-   "hits": 92,
-   "total": 92,
+   "hits": 84,
+   "total": 84,
    "reason": "naming",
    "sample": [
     "Activity_Sprint_TreasureChest",
@@ -294,9 +294,9 @@
   },
   "GiftPackRowName": {
    "target": "Config_GiftPackStandard",
-   "confidence": 0.845,
+   "confidence": 0.938,
    "hits": 136,
-   "total": 161,
+   "total": 145,
    "reason": "data",
    "sample": [
     "GiftPack_Sprint_TreasureChest_00",
@@ -336,9 +336,9 @@
   },
   "ProductRowName": {
    "target": "Config_Product",
-   "confidence": 0.988,
-   "hits": 171,
-   "total": 173,
+   "confidence": 0.987,
+   "hits": 155,
+   "total": 157,
    "reason": "naming",
    "sample": [
     "Product_LimitedTimePass_01",
@@ -423,8 +423,8 @@
   "AffixRowName": {
    "target": "Config_GemAffix",
    "confidence": 1,
-   "hits": 71,
-   "total": 71,
+   "hits": 70,
+   "total": 70,
    "reason": "data",
    "sample": [
     "Gem_CommonEffect_TwoSecondaryPlayerAddInvicible_5",
@@ -1233,7 +1233,7 @@
      "desc": "物品行RowName",
      "target": "Config_CatalogItem",
      "confidence": 1,
-     "samples": 173
+     "samples": 172
     },
     "Count": {
      "type": "integer",
@@ -1613,7 +1613,7 @@
      "desc": "",
      "target": "Config_GemAffix",
      "confidence": 1,
-     "samples": 71
+     "samples": 70
     }
    },
    "definedIn": "Config_Activity"
@@ -2979,8 +2979,8 @@
  "tables": {
   "Config_Activity": {
    "name": "Config_Activity",
-   "rowCount": 32,
-   "notesFilled": 32,
+   "rowCount": 31,
+   "notesFilled": 31,
    "notesRate": 100,
    "fields": [
     {
@@ -3005,8 +3005,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3297,8 +3297,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3461,8 +3461,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3641,8 +3641,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -3891,8 +3891,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -4283,8 +4283,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间控制, 用于控制重置"
     },
@@ -4332,8 +4332,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间行"
     },
@@ -4730,8 +4730,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -4839,8 +4839,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -4977,8 +4977,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间行"
     },
@@ -5281,8 +5281,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -5378,8 +5378,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -5694,8 +5694,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -5719,9 +5719,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -5815,8 +5815,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -5840,9 +5840,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -5925,8 +5925,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -5950,9 +5950,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6004,8 +6004,8 @@
   },
   "Config_GiftPackPeriodic": {
    "name": "Config_GiftPackPeriodic",
-   "rowCount": 43,
-   "notesFilled": 43,
+   "rowCount": 27,
+   "notesFilled": 27,
    "notesRate": 100,
    "fields": [
     {
@@ -6042,8 +6042,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6067,9 +6067,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6146,8 +6146,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6171,9 +6171,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6250,8 +6250,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6275,9 +6275,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6354,8 +6354,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6379,9 +6379,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6862,8 +6862,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间行"
     },
@@ -6959,8 +6959,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -7026,8 +7026,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -7476,8 +7476,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -7598,8 +7598,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -7705,8 +7705,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -7879,8 +7879,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -8014,8 +8014,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间控制RowName"
     },
@@ -8158,8 +8158,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间控制RowName"
     },
@@ -8339,8 +8339,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称"
     }
@@ -8542,8 +8542,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间行名称，类型必须是玩家开始时间"
     },
@@ -8643,9 +8643,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.988,
-     "hits": 171,
-     "total": 173,
+     "confidence": 0.987,
+     "hits": 155,
+     "total": 157,
      "implicit": false,
      "desc": "绑定的商品RowName,没有绑定为每日免费"
     },
@@ -8685,8 +8685,8 @@
   },
   "Config_Product": {
    "name": "Config_Product",
-   "rowCount": 189,
-   "notesFilled": 189,
+   "rowCount": 173,
+   "notesFilled": 173,
    "notesRate": 100,
    "fields": [
     {
@@ -8739,8 +8739,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "时间控制行名称"
     },
@@ -8837,8 +8837,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": ""
     },
@@ -8882,8 +8882,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -8972,8 +8972,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9078,8 +9078,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     }
@@ -9157,8 +9157,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9209,8 +9209,8 @@
   },
   "Config_SpiritPet": {
    "name": "Config_SpiritPet",
-   "rowCount": 3,
-   "notesFilled": 3,
+   "rowCount": 2,
+   "notesFilled": 2,
    "notesRate": 100,
    "fields": [
     {
@@ -9292,8 +9292,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9548,8 +9548,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 92,
-     "total": 92,
+     "hits": 84,
+     "total": 84,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9626,8 +9626,8 @@
   },
   "Config_TimeControl": {
    "name": "Config_TimeControl",
-   "rowCount": 102,
-   "notesFilled": 96,
+   "rowCount": 94,
+   "notesFilled": 88,
    "notesRate": 94,
    "fields": [
     {
@@ -9771,9 +9771,19 @@
    ],
    "extraKeys": [],
    "increments": {
-    "kkts-event-testing": 67
+    "kkts-event-testing": 59
    },
    "hasSchema": true
+  },
+  "_probe": {
+   "name": "_probe",
+   "rowCount": 0,
+   "notesFilled": 0,
+   "notesRate": 0,
+   "fields": [],
+   "extraKeys": [],
+   "increments": null,
+   "hasSchema": false
   }
  }
 }

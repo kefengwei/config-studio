@@ -243,15 +243,18 @@ function appendRow(text, obj, { indentUnit, eol } = {}) {
   const body = JSON.stringify(obj, null, indentUnit).split('\n').join(eol + rowIndent);
   const block = rowIndent + body;
 
-  const closeItems = text.lastIndexOf(']', idx.itemsEnd);
   // 找 Items 数组的闭括号
   const itemsClose = idx.itemsEnd - 1;
   const before = text.slice(0, itemsClose).replace(/\s+$/, '');
+  /* 闭括号 ] 前面的缩进要原样保留：before 已经把尾部空白削掉了，
+     不补回来的话新增后的 "]" 会顶格，文件的缩进就被改坏。 */
+  const closeLine = text.slice(text.lastIndexOf('\n', itemsClose - 1) + 1, itemsClose);
+  const closeIndent = (closeLine.match(/^[ \t]*/) || [''])[0];
   // 若 Items 为空数组 []
   const isEmpty = /\[\s*$/.test(before);
-  if (isEmpty) return before + eol + block + eol + text.slice(itemsClose);
+  if (isEmpty) return before + eol + block + eol + closeIndent + text.slice(itemsClose);
   const sep = ',' + eol;
-  return before + sep + block + eol + text.slice(itemsClose).replace(/^\s*/, '');
+  return before + sep + block + eol + closeIndent + text.slice(itemsClose);
 }
 
 /**

@@ -29,9 +29,15 @@ for (const f of fs.readdirSync(path.join(SRC, 'js'))) {
   if (f.endsWith('.js')) fs.copyFileSync(path.join(SRC, 'js', f), path.join(ASSETS, f));
 }
 
-/* 4. 页面 */
+/* 4. 页面
+ * 给 assets 的 css/js 统一追加 ?v=<构建时间>：
+ * Tauri 的 WebView2 会按 URL 缓存 /assets/*，没有版本号时改了前端重启 exe 还是旧代码。 */
 step('拷贝 index.html');
-fs.copyFileSync(path.join(SRC, 'index.html'), path.join(DIST, 'index.html'));
+const stamp = 'v' + Date.now().toString(36);
+const html = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8')
+  .replace(/(src="\/assets\/[^"?]+\.js)(\?[^"]*)?(")/g, '$1?' + stamp + '$3')
+  .replace(/(href="\/assets\/[^"?]+\.css)(\?[^"]*)?(")/g, '$1?' + stamp + '$3');
+fs.writeFileSync(path.join(DIST, 'index.html'), html);
 
 /* 5. 防回归：组件 class 名不得与 Tailwind utility 同名（utility 层优先级更高会盖掉组件样式） */
 step('检查 class 名冲突');

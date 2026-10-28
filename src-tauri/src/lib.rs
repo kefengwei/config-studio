@@ -4,6 +4,8 @@
  *   读原文 / 写原文（带自动备份）/ 列备份 / 撤销 / 列配置表 / 配置目录状态 / 最近目录历史
  * 解析、校验、diff 仍然全部在前端，后端只搬字节。
  */
+mod git;
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -371,6 +373,55 @@ fn remove_recent(app: AppHandle, path: String) -> Result<(), String> {
   write_recent(&app, &list)
 }
 
+/* ---------------- Git ---------------- */
+/* 全部转给 git 命令行执行：用户机器上本来就有 Git（配置仓库本身是 git 仓库），
+   比自己链 libgit2 省事，也不会因为 .git 的新格式读不了。 */
+
+fn git_dir(state: &State<'_, AppState>) -> Result<PathBuf, String> {
+  let root = current_root(state)?;
+  Ok(configs_of(&root))
+}
+
+#[tauri::command]
+fn git_info(state: State<'_, AppState>) -> Result<git::GitInfo, String> {
+  Ok(git::info(&git_dir(&state)?))
+}
+
+#[tauri::command]
+fn git_status(state: State<'_, AppState>) -> Result<Vec<git::GitFile>, String> {
+  git::status(&git_dir(&state)?)
+}
+
+#[tauri::command]
+fn git_branches(state: State<'_, AppState>) -> Result<Vec<git::GitBranch>, String> {
+  git::branches(&git_dir(&state)?)
+}
+
+#[tauri::command]
+fn git_checkout(state: State<'_, AppState>, branch: String) -> Result<String, String> {
+  git::checkout(&git_dir(&state)?, &branch)
+}
+
+#[tauri::command]
+fn git_diff(state: State<'_, AppState>, path: String) -> Result<String, String> {
+  git::diff(&git_dir(&state)?, &path)
+}
+
+#[tauri::command]
+fn git_log(state: State<'_, AppState>, limit: Option<usize>) -> Result<Vec<git::GitCommit>, String> {
+  git::log(&git_dir(&state)?, limit.unwrap_or(50))
+}
+
+#[tauri::command]
+fn git_pull(state: State<'_, AppState>) -> Result<String, String> {
+  git::pull(&git_dir(&state)?)
+}
+
+#[tauri::command]
+fn git_push(state: State<'_, AppState>) -> Result<String, String> {
+  git::push(&git_dir(&state)?)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -387,7 +438,15 @@ pub fn run() {
       set_config,
       clear_config,
       list_recent,
-      remove_recent
+      remove_recent,
+      git_info,
+      git_status,
+      git_branches,
+      git_checkout,
+      git_diff,
+      git_log,
+      git_pull,
+      git_push
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

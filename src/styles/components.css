@@ -426,7 +426,17 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 .btn:disabled { opacity: .38; cursor: default; }
 .btn svg { width: 14px; height: 14px; }
 
-.grid-wrap { flex: 1; overflow: auto; padding: 0 20px 20px; }
+/* 左右各留 8px：原来 20px 在宽屏上会看成"表格两侧各有一条空白"。
+   垂直滚动条另给了 10px 的细样式，不然默认 15px 也会被当成右侧空白。 */
+.grid-wrap { flex: 1; overflow: auto; padding: 0 8px 20px; }
+.grid-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+.grid-wrap::-webkit-scrollbar-thumb {
+  background: var(--line-strong); border-radius: 6px;
+  border: 2px solid transparent; background-clip: content-box;
+}
+.grid-wrap::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: content-box; }
+.grid-wrap::-webkit-scrollbar-track { background: transparent; }
+.grid-wrap::-webkit-scrollbar-corner { background: transparent; }
 
 /* 中栏被压到极窄：只留 RowName。编辑模式下再留一列勾选框，
    否则连批量选择都没法做。 */
@@ -1252,3 +1262,217 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 }
 .boot-foot b { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
 .boot-mask.busy .boot-pick { opacity: .6; pointer-events: none; }
+/* ---------- Git 抽屉 ---------- */
+.gd-mask {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--overlay);
+  animation: gd-fade .12s ease-out;
+}
+.gd-mask[hidden] { display: none; }
+.gd {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 94vw; z-index: 310;
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: var(--elev3);
+  animation: gd-slide .16s ease-out;
+}
+.gd[hidden] { display: none; }
+@keyframes gd-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes gd-slide { from { transform: translateX(16px); opacity: .4 } to { transform: none; opacity: 1 } }
+
+.gd-head {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.gd-head b { font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+.gd-x {
+  width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-xs);
+  background: transparent; color: var(--ink-3);
+  font: 16px/1 var(--sans); cursor: pointer;
+}
+.gd-x:hover { background: var(--panel-2); color: var(--ink); }
+
+.gd-top { flex: 0 0 auto; padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
+.gd-repo {
+  font: 10.5px/1.4 var(--mono); color: var(--ink-3);
+  margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gd-branch {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--ctl-bg); color: var(--ink); cursor: pointer;
+  font: 12px/1.2 var(--sans); text-align: left;
+}
+.gd-branch:hover { border-color: var(--ink-3); }
+.gd-branch svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--accent); }
+.gd-branch b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-caret { color: var(--ink-3); font-size: 10px; }
+
+.gd-syncrow { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.gd-ab {
+  font: 10.5px/1 var(--mono); padding: 3px 6px; border-radius: 3px;
+  background: var(--panel-2); color: var(--ink-2); border: 1px solid var(--line);
+}
+.gd-ab.up { color: var(--ok-ink); border-color: var(--ok-line); background: var(--ok-bg); }
+.gd-ab.down { color: var(--warn-ink); border-color: var(--warn-line); background: var(--warn-bg); }
+.gd-remote {
+  margin-left: auto; font: 10.5px/1.2 var(--mono); color: var(--ink-3);
+  max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.gd-acts { display: flex; gap: 6px; margin-top: 10px; }
+.gd-acts .btn { flex: 1; justify-content: center; }
+
+.gd-err {
+  margin-top: 8px; padding: 7px 9px; border-radius: var(--r-sm);
+  background: var(--bad-bg); border: 1px solid var(--bad-line); color: var(--bad-ink);
+  font-size: 11px; line-height: 1.5; white-space: pre-wrap;
+}
+
+/* 中性提示（切分支这类耗时操作） */
+.gd-note {
+  margin-top: 8px; padding: 7px 9px; border-radius: var(--r-sm);
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2);
+  font-size: 11px; line-height: 1.5;
+}
+
+/* 分支选择 */
+.gd-picker { margin-top: 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; }
+.gd-q {
+  width: 100%; height: 28px; padding: 0 8px; border: 0; border-bottom: 1px solid var(--line);
+  background: var(--panel-2); color: var(--ink); font: 12px var(--sans); outline: none;
+}
+.gd-blist { max-height: 260px; overflow-y: auto; }
+.gd-bh {
+  padding: 5px 8px 3px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  color: var(--ink-3); text-transform: uppercase;
+}
+.gd-bi {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 8px; border: 0; background: transparent; cursor: pointer;
+  font: 11.5px/1.3 var(--mono); color: var(--ink); text-align: left;
+}
+.gd-bi:hover { background: var(--panel-2); }
+.gd-bi.cur { color: var(--accent); font-weight: 600; }
+.gd-bin { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gd-tag {
+  font: 9.5px/1 var(--sans); padding: 2px 5px; border-radius: 3px;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line);
+}
+
+/* Tabs + 列表 */
+.gd-tabs { flex: 0 0 auto; display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.gd-tab {
+  padding: 8px 10px 7px; border: 0; border-bottom: 2px solid transparent;
+  background: transparent; color: var(--ink-3); cursor: pointer; font: 12px/1 var(--sans);
+}
+.gd-tab:hover { color: var(--ink-2); }
+.gd-tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.gd-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 6px 0 20px; }
+.gd-empty { padding: 24px 14px; text-align: center; color: var(--ink-3); font-size: 12px; }
+.gd-load { padding: 20px 14px; color: var(--ink-3); font-size: 12px; }
+
+.gd-files { display: flex; flex-direction: column; }
+.gd-frow {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 6px 14px; border: 0; background: transparent; cursor: pointer;
+  text-align: left; color: var(--ink);
+}
+.gd-frow:hover { background: var(--panel-2); }
+.gd-f.on > .gd-frow { background: var(--accent-soft); }
+.gd-st {
+  flex: 0 0 auto; font: 9.5px/1 var(--sans); padding: 2px 5px; border-radius: 3px;
+  border: 1px solid var(--line-strong); color: var(--ink-2); background: var(--panel-2);
+}
+.gd-st.m { color: var(--warn-ink); border-color: var(--warn-line); background: var(--warn-bg); }
+.gd-st.s { color: var(--ref); border-color: var(--ref-line); background: var(--ref-soft); }
+.gd-st.u { color: var(--ink-3); border-style: dashed; background: transparent; }
+.gd-path {
+  flex: 1 1 auto; min-width: 0; font: 11px/1.45 var(--mono);
+  word-break: break-all;
+}
+/* ---------- 文件 diff：贴在 Git 抽屉左侧的宽面板 ----------
+   抽屉只有 420px，unified diff 在这里几乎每行都折行，
+   所以点变更文件时在左侧另开一块更宽的只读区，两边并排看。 */
+.gdp {
+  position: fixed; top: 0; bottom: 0;
+  /* 左边界不越过侧栏（248px），右边界贴住抽屉：两块并排，最多 1100 宽 */
+  left: max(248px, calc(100vw - 420px - 1100px));
+  right: min(420px, 94vw);
+  z-index: 315;
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  border-left: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line);
+  box-shadow: -10px 0 26px rgba(0, 0, 0, .14);
+  animation: gdp-in .14s ease-out;
+}
+.gdp[hidden] { display: none; }
+@keyframes gdp-in { from { transform: translateX(-10px); opacity: .4 } to { transform: none; opacity: 1 } }
+
+.gdp-head {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.gdp-t {
+  flex: 0 0 auto;
+  font: 600 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.gdp-path { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; }
+.gdp-path > span:last-child {
+  font: 11.5px/1.4 var(--mono); color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gdp-nav { flex: 0 0 auto; display: flex; gap: 2px; }
+.gdp-b {
+  width: 22px; height: 22px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: var(--r-xs);
+  background: var(--panel); color: var(--ink-2);
+  font: 11px/1 var(--mono); cursor: pointer;
+}
+.gdp-b:hover:not(:disabled) { background: var(--panel-2); border-color: var(--line-strong); color: var(--ink); }
+.gdp-b:disabled { opacity: .4; cursor: default; }
+
+.gdp-body { flex: 1 1 auto; overflow: auto; }
+.gdp-code {
+  margin: 0; padding: 6px 0 24px;
+  font: 11.5px/1.62 var(--mono); color: var(--ink-2); white-space: pre;
+}
+.gdp-code .dl { display: block; padding: 0 16px 0 12px; }
+.gdp-code .add { background: rgba(34, 197, 94, .14); box-shadow: inset 3px 0 0 #22c55e; color: var(--ink); }
+.gdp-code .del { background: rgba(239, 68, 68, .13); box-shadow: inset 3px 0 0 #ef4444; color: var(--ink); }
+.gdp-code .hunk { background: var(--panel-2); color: var(--ink-3); }
+.gdp-code .meta, .gdp-code .hd { color: var(--ink-3); }
+
+/* 窄窗口并排放不下（中间只剩 200 多像素）：diff 直接盖满整屏 */
+@media (max-width: 1024px) {
+  .gdp { left: 0; right: 0; z-index: 320; }
+}
+
+.gd-log { display: flex; flex-direction: column; }
+.gd-c { padding: 7px 14px; border-bottom: 1px solid var(--line-soft); overflow: hidden; }
+/* 提交说明里会有很长的 URL（Merge branch 'dev' of https://…），必须能断行，
+   否则整条日志会撑出横向滚动条 */
+.gd-cs { font-size: 12px; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.gd-cm {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 3px;
+  font: 10.5px/1.2 var(--mono); color: var(--ink-3);
+}
+.gd-hash { color: var(--accent); }
+
+/* ---------- 待保存条：新增的计数与行名 ---------- */
+.pending-bar .pb-add { color: var(--ok-ink); }
+.pending-bar .pb-rows em { font-style: normal; color: var(--ok-ink); }
+
+/* ---------- 工具栏：新增行按钮 ---------- */
+.toolbar .spacer { flex: 1 1 auto; }
+#btn-new-row { flex: 0 0 auto; }
+.center.narrow #btn-new-row { display: none; }

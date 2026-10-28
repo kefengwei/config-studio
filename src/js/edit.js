@@ -63,6 +63,16 @@ function mountEditBar() {
     state.selRow = row ? row.RowName : null;
   });
 
+  // 新增行：和编辑一样先进队列，底部「预览并保存」统一写盘
+  const newBtn = document.getElementById('btn-new-row');
+  if (newBtn) newBtn.addEventListener('click', () => {
+    const t = state.sem.tables[state.cur];
+    if (!t) return;
+    EP.detailMode = 'new';
+    EP.editRow = null;
+    renderNewRowForm(t);
+  });
+
   // 待保存条
   const pbar = document.createElement('div');
   pbar.id = 'pending-bar';
@@ -109,7 +119,9 @@ function isPendingDel(table, row) {
 
 function pendingOps(items) {
   return (items || [...EP.pending.values()]).map((p) =>
-    p.del ? { type: 'delete', row: p.row } : { type: 'set', row: p.row, patch: p.patch });
+    p.del ? { type: 'delete', row: p.row }
+      : p.append ? { type: 'append', value: p.value }
+      : { type: 'set', row: p.row, patch: p.patch });
 }
 
 /* 表格里标记队列中的行：改过的加黄点，要删的整行划掉 */
@@ -133,22 +145,25 @@ function updatePendingBar() {
   if (!n) { bar.hidden = true; return; }
   bar.hidden = false;
   const del = all.filter((p) => p.del).length;
-  const sets = n - del;
+  const add = all.filter((p) => p.append).length;
+  const sets = n - del - add;
   const parts = [];
   if (sets) parts.push('<b>' + sets + '</b> 行待保存');
+  if (add) parts.push('<b class="pb-add">+' + add + '</b> 行待新增');
   if (del) parts.push('<b class="pb-dn">' + del + '</b> 行待删除');
   bar.innerHTML = '<span class="pb-dot"></span> ' + parts.join(' <span class="pb-sep">·</span> ') +
     '<span class="pb-rows">' + all.slice(0, 3).map((p) =>
-      p.del ? '<s>' + esc(p.row) + '</s>' : esc(p.row)).join('、') + (n > 3 ? ' …' : '') + '</span>' +
+      p.del ? '<s>' + esc(p.row) + '</s>' : (p.append ? '<em>+' + esc(p.row) + '</em>' : esc(p.row))).join('、') + (n > 3 ? ' …' : '') + '</span>' +
     '<span class="spacer"></span>' +
     '<button class="btn primary" id="btn-save">预览并保存</button>' +
     '<button class="btn" id="btn-discard">放弃</button>';
   $e('#btn-save').onclick = saveAll;
   $e('#btn-discard').onclick = async () => {
-    const ok = await uiConfirm('放弃这些改动？',
-      (sets ? '取消 ' + sets + ' 行待保存的修改' : '') +
-      (sets && del ? '，' : '') +
-      (del ? '取消 ' + del + ' 行删除' : '') + '。 文件不会被写入。',
+    const bits = [];
+    if (sets) bits.push('取消 ' + sets + ' 行待保存的修改');
+    if (add) bits.push('取消 ' + add + ' 行新增');
+    if (del) bits.push('取消 ' + del + ' 行删除');
+    const ok = await uiConfirm('放弃这些改动？', bits.join('，') + '。 文件不会被写入。',
       { okText: '放弃', danger: true });
     if (!ok) return;
     EP.pending.clear();
@@ -223,6 +238,7 @@ async function saveAll() {
   const parts = [];
   for (const [table, items] of groups) {
     const delRows = items.filter((p) => p.del);
+    const addRows = items.filter((p) => p.append);
     const ops = pendingOps(items);
     const { data } = await postJson('/api/preview', { table, ops });
     if (!data || !data.diff) {
@@ -231,16 +247,18 @@ async function saveAll() {
       return;
     }
     if (delRows.length) data.warnings = delWarnings(delRows).concat(data.warnings || []);
-    parts.push({ table, ops, data, setCount: items.length - delRows.length, delCount: delRows.length });
+    parts.push({ table, ops, data, setCount: items.length - delRows.length - addRows.length, delCount: delRows.length, addCount: addRows.length });
   }
   setStatus('就绪');
 
   const totalOps = parts.reduce((s, p) => s + p.ops.length, 0);
   const totalDel = parts.reduce((s, p) => s + p.delCount, 0);
+  const totalAdd = parts.reduce((s, p) => s + p.addCount, 0);
   const onlyDel = totalDel > 0 && totalDel === totalOps;
+  const onlyAdd = totalAdd > 0 && totalAdd === totalOps;
   const many = parts.length > 1;
-  const okText = many ? '写入 ' + parts.length + ' 张表' : (onlyDel ? '删除' : '写入文件');
-  const title = many ? '确认改动（' + parts.length + ' 张表）' : (onlyDel ? '确认删除' : '确认改动');
+  const okText = many ? '写入 ' + parts.length + ' 张表' : (onlyDel ? '删除' : onlyAdd ? '新增' : '写入文件');
+  const title = many ? '确认改动（' + parts.length + ' 张表）' : (onlyDel ? '确认删除' : onlyAdd ? '确认新增' : '确认改动');
 
   showMultiDiffDialog(parts, async () => {
     const done = [];
@@ -265,7 +283,9 @@ async function saveAll() {
     syncDelMarks();
     await reloadAfterSave(parts.map((x) => x.table));
     const bits = [];
-    if (totalOps - totalDel) bits.push('修改 ' + (totalOps - totalDel) + ' 处');
+    const setTotal = totalOps - totalDel - totalAdd;
+    if (setTotal) bits.push('修改 ' + setTotal + ' 处');
+    if (totalAdd) bits.push('新增 ' + totalAdd + ' 行');
     if (totalDel) bits.push('删除 ' + totalDel + ' 行');
     if (many) bits.push(parts.length + ' 张表');
     const bs = done.map((d) => d.backup);
@@ -397,6 +417,8 @@ const baseRenderDetail = window.renderDetail;
 window.renderDetail = function (row) {
   // 点了别的行（或清空选择）就退出编辑态，否则会把上一行的表单套到新行上
   if (EP.detailMode === 'edit' && (!row || row.RowName !== EP.editRow)) { EP.detailMode = 'view'; EP.draft = null; }
+  // 新增行没填完就去点别的行：直接放弃这份表单（它还没进队列，没有副作用）
+  if (EP.detailMode === 'new' && row) { EP.detailMode = 'view'; EP.draft = null; }
   if (EP.detailMode !== 'edit' || !row) return baseRenderDetail(row);
   renderEditForm(row);
 };
@@ -508,6 +530,78 @@ function renderEditForm(row) {
   }));
 }
 
+
+/* ---------------- 新增行 ----------------
+   和编辑同一套机制：填完先入「待保存队列」，底部「预览并保存」过 diff 才写盘。
+   只把用户真填了的字段写进 JSON —— 没动的字段不出现在新行里，避免写一堆空值。 */
+function renderNewRowForm(t) {
+  const fields = t.fields.filter((f) => f.name !== 'RowName');
+  const el = $e('#detail');
+
+  EP.draft = { values: {}, fields: new Set() };
+
+  const rowsHtml = fields.map((f) => {
+    let ctrl;
+    if (typeof SE !== 'undefined' && SE.supports(f)) {
+      EP.draft.values[f.name] = SE.normalize(f, undefined);
+      EP.draft.fields.add(f.name);
+      ctrl = SE.fieldHtml(f, EP.draft.values[f.name]);
+    } else {
+      ctrl = ctrlHtml(t, f, undefined);
+    }
+    return '<div class="f-row ed-row"><div class="f-key">' + fkeyHtml(f) +
+      (f.target ? '<span class="k-target">→ ' + esc(f.target) + '</span>' : '') + '</div>' +
+      '<div class="f-val">' + ctrl + '</div>' +
+      (f.desc ? '<div class="f-desc" title="' + esc(f.desc) + '">' + esc(f.desc) + '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  el.innerHTML = '<div class="d-head"><div class="d-rn">新增行<span class="ed-tag">未保存</span></div>' +
+    '<div class="d-summary">' + esc(t.name) + ' · 只写入填了值的字段</div></div>' +
+    '<div class="d-body ed-form">' +
+    '<div class="f-row ed-row"><div class="f-key"><span class="fk-cn">行名</span><span class="fk-en">RowName</span></div>' +
+    '<div class="f-val"><input class="ed-ctl mono" id="new-rowname" placeholder="必填 · 表内唯一" autocomplete="off" spellcheck="false" /></div>' +
+    '<div class="f-desc">这一行的唯一标识；别的表靠这个名字引用本行</div></div>' +
+    rowsHtml + '</div>' +
+    '<div class="ed-foot"><button class="btn" id="new-cancel">取消 <kbd>Esc</kbd></button>' +
+    '<button class="btn primary" id="new-add">加入待保存 <kbd>Ctrl ↵</kbd></button></div>';
+  el.scrollTop = 0;
+
+  if (typeof SE !== 'undefined') SE.bind(el.querySelector('.ed-form'), EP.draft);
+  $e('#new-cancel').onclick = () => { EP.detailMode = 'view'; EP.draft = null; renderDetail(null); };
+  $e('#new-add').onclick = () => applyNewRow(t);
+  const rn = $e('#new-rowname');
+  if (rn) rn.focus();
+}
+
+async function applyNewRow(t) {
+  const rnEl = $e('#new-rowname');
+  const rn = (rnEl ? rnEl.value : '').trim();
+  if (!rn) { uiAlert('RowName 不能为空', 'RowName 是这一行的唯一标识，别的表靠它引用本行。'); if (rnEl) rnEl.focus(); return; }
+  if (/\s/.test(rn)) { uiAlert('RowName 里有空格', '当前值：' + rn + '\n配置里的 RowName 一律不带空格（列编辑也是按名字定位的）。'); if (rnEl) rnEl.focus(); return; }
+  try { await DS.notes(t.name); } catch (e) { }
+  if (DS.hasRow(t.name, rn)) {
+    uiAlert('RowName 已存在', t.name + ' 里已经有 ' + rn + ' 这一行。换一个名字，或直接编辑那一行。');
+    if (rnEl) rnEl.focus();
+    return;
+  }
+  const { patch, bad } = collectForm(t, {});
+  if (bad.length) { uiAlert('有字段无法解析', bad.join('\n')); return; }
+  const value = Object.assign({ RowName: rn }, patch);
+  EP.pending.set(PK(t.name, rn), { table: t.name, row: rn, append: true, value: value });
+  EP.detailMode = 'view';
+  EP.editRow = null;
+  EP.draft = null;
+  updatePendingBar();
+  syncDelMarks();
+  $e('#detail').innerHTML = '<div class="d-head"><div class="d-rn">' + esc(rn) +
+    '<span class="ed-tag">待新增</span></div>' +
+    '<div class="d-summary">' + esc(t.name) + ' · 已加入待保存队列</div></div>' +
+    '<div class="d-body"><div class="d-del-note"><b>已加入新增队列</b>' +
+    '<span>点底部「预览并保存」后才写入文件；可以继续新增下一行</span></div></div>';
+  setStatus('已加入新增队列（' + rn + '）· 共 ' + Object.keys(patch).length + ' 个字段');
+}
+
 const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 function isEmptyStruct(v) {
@@ -597,6 +691,24 @@ function isTyping(el) {
 
 document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented) return;
+
+  /* 新增态：Ctrl/Cmd+Enter 加入队列，Esc 取消 */
+  if (EP.detailMode === 'new') {
+    const add = $e('#new-add');
+    const cancel = $e('#new-cancel');
+    if (!add || !cancel) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'Enter' || e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      add.click();
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (overlayOpen()) return;
+      e.preventDefault();
+      cancel.click();
+    }
+    return;
+  }
 
   /* 编辑态：Ctrl/Cmd+Enter 或 Ctrl/Cmd+S 应用，Esc 取消 */
   if (EP.detailMode === 'edit') {
