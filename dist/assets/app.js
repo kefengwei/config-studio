@@ -1209,4 +1209,9 @@ document.addEventListener('keydown', (e) => {
 
 function setStatus(s) { $('#status').textContent = s; }
 pfInit();
-init().catch((e) => { setStatus('加载失败: ' + e.message); console.error(e); });
+/* 桌面版启动器（boot.js）要先让用户选配置目录，选好后才调 __START_APP__ */
+function startApp() {
+  init().catch((e) => { setStatus('加载失败: ' + e.message); console.error(e); });
+}
+window.__START_APP__ = startApp;
+if (!window.__HOLD_INIT__) startApp();

@@ -2,17 +2,21 @@
   "name": "dr-config-studio",
   "version": "1.0.0",
   "private": true,
-  "description": "配置工作台：策划用的配置批量维护工具（本地服务 + 单页作业界面）",
+  "description": "配置工作台：策划用的配置批量维护工具（浏览器版 + Windows 桌面版）",
   "type": "module",
   "scripts": {
     "css": "tailwindcss -i ./src/styles/input.css -o ./dist/assets/app.css --minify",
     "css:watch": "tailwindcss -i ./src/styles/input.css -o ./dist/assets/app.css --watch",
     "semantics": "node ./scripts/build-semantics.mjs",
     "build": "npm run semantics && npm run css && node ./scripts/build.mjs",
-    "serve": "node ./scripts/serve.mjs"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --no-bundle",
+    "icon": "node ./scripts/make-icon.mjs"
   },
   "devDependencies": {
-    "tailwindcss": "^4.1.0",
-    "@tailwindcss/cli": "^4.1.0"
+    "@tailwindcss/cli": "^4.1.0",
+    "@tauri-apps/cli": "^2.12.4",
+    "tailwindcss": "^4.1.0"
   }
 }

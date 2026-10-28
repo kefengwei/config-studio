@@ -13,15 +13,28 @@ const DS = (() => {
   let current = null;
   const MAX_OPEN = 4;
 
+  /* Tauri 桌面版走进程内命令（window.__TAURI__.core.invoke）；
+     浏览器里继续走 启动.bat 起的 PowerShell HTTP 服务。两条路的接口一一对应。 */
+  const isTauri = typeof window !== 'undefined' && !!(window.__TAURI__ && window.__TAURI__.core);
+  const invoke = isTauri ? (cmd, args) => window.__TAURI__.core.invoke(cmd, args) : null;
+
+  async function listTables() {
+    if (invoke) {
+      try { return { tables: await invoke('list_tables') }; }
+      catch (e) { throw new Error('读取配置目录失败：' + e); }
+    }
+    return await fetch('/api/tables').then((x) => x.json());
+  }
+
   const fileName = (n) => (/\.json$/.test(n) ? n : n + '.json');
   const baseName = (n) => n.replace(/\.json$/, '');
   const stripBom = (s) => (s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s);
   const byteLen = (s) => new TextEncoder().encode(s).length;
 
   async function init(onProgress) {
-    const r = await fetch('/assets/semantics.json').then((x) => x.json());
+    const r = await fetch('assets/semantics.json').then((x) => x.json());
     SEM = r;
-    const list = await fetch('/api/tables').then((x) => x.json());
+    const list = await listTables();
     fileList = list.tables || [];
     const names = Object.keys(SEM.tables);
     /* 语义层只在构建时生成，所以"新增/删除配置文件"它不会自己跟上。
@@ -53,7 +66,12 @@ const DS = (() => {
   }
 
   async function readText(name) {
-    const res = await fetch('/api/file?name=' + encodeURIComponent(fileName(name)));
+    const fn = fileName(name);
+    if (invoke) {
+      try { return await invoke('read_file', { name: fn }); }
+      catch (e) { throw new Error('读取失败：' + name + '（' + e + '）'); }
+    }
+    const res = await fetch('/api/file?name=' + encodeURIComponent(fn));
     if (!res.ok) throw new Error('读取失败：' + name + '（HTTP ' + res.status + '）');
     return await res.text();
   }
@@ -343,23 +361,40 @@ const DS = (() => {
     const after = applyOpsText(before, ops).text;
     const check = validate(base, after);
     if (check.errors.length) throw new Error('校验未通过：' + check.errors.join('；'));
-    const res = await fetch('/api/save?name=' + encodeURIComponent(fileName(base)), { method: 'POST', body: after });
-    const r = await res.json();
-    if (!res.ok || !r.ok) throw new Error((r && r.error) || '写入失败');
+    let r;
+    if (invoke) {
+      try { r = { ok: true, backup: (await invoke('save_file', { name: fileName(base), contents: after })).backup }; }
+      catch (e) { throw new Error('写入失败：' + e); }
+    } else {
+      const res = await fetch('/api/save?name=' + encodeURIComponent(fileName(base)), { method: 'POST', body: after });
+      r = await res.json();
+      if (!res.ok || !r.ok) throw new Error((r && r.error) || '写入失败');
+    }
     files.delete(base); notes.delete(base); fills.delete(base); allCache.delete(base);
     try { notes.set(base, indexOf(JSON.parse(stripBom(after)))); } catch (e) { }
     return { ok: true, table: base, backup: r.backup, opCount: ops.length, warnings: check.warnings };
   }
 
   async function ping() {
+    if (invoke) {
+      try { return { ok: true, ...(await invoke('ping')) }; } catch { return null; }
+    }
     try { return await fetch('/api/ping').then((x) => x.json()); } catch { return null; }
   }
 
-  async function backups() { return await fetch('/api/backups').then((x) => x.json()); }
+  async function backups() {
+    if (invoke) return { ok: true, backups: await invoke('list_backups') };
+    return await fetch('/api/backups').then((x) => x.json());
+  }
   async function undo(id) {
-    const res = await fetch('/api/undo?id=' + encodeURIComponent(id), { method: 'POST' });
-    const r = await res.json();
-    if (!res.ok || !r.ok) throw new Error((r && r.error) || '还原失败');
+    let r;
+    if (invoke) {
+      try { r = await invoke('undo', { id }); } catch (e) { throw new Error('还原失败：' + e); }
+    } else {
+      const res = await fetch('/api/undo?id=' + encodeURIComponent(id), { method: 'POST' });
+      r = await res.json();
+      if (!res.ok || !r.ok) throw new Error((r && r.error) || '还原失败');
+    }
     files.delete(r.table); notes.delete(r.table); fills.delete(r.table); allCache.delete(r.table);
     return r;
   }

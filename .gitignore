@@ -9,3 +9,7 @@ config-dir.txt
 dist/config-dir.txt
 
 *.log
+
+# Tauri / Rust 构建产物（cargo 可重建，几百 MB）
+src-tauri/target/
+src-tauri/gen/schemas/

@@ -1,0 +1,40 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Config Studio",
+  "version": "0.1.0",
+  "identifier": "com.configstudio.app",
+  "build": {
+    "frontendDist": "../dist",
+    "beforeBuildCommand": "node scripts/build.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "配置工作台",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1080,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/32x32.png",
+      "icons/128x128.png"
+    ]
+  }
+}

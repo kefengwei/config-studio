@@ -1169,3 +1169,86 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
   .kh-body { grid-template-columns: minmax(0, 1fr); }
 }
 .ce-note { padding: 6px 16px; font-size: 11px; color: var(--warn); background: var(--warn-bg); border-bottom: 1px solid var(--accent-line); }
+/* ---------- 桌面版启动器（选择配置仓库目录） ---------- */
+.boot-mask {
+  position: fixed; inset: 0; z-index: 800;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  transition: opacity .14s ease;
+}
+.boot-mask[hidden] { display: none; }
+.boot-mask.boot-out { opacity: 0; pointer-events: none; }
+.boot-card {
+  width: min(560px, 100%);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--elev3);
+  padding: 26px 26px 18px;
+}
+.boot-head { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 20px; }
+.boot-logo {
+  width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(140deg, var(--accent-solid), var(--accent));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+}
+.boot-titles { min-width: 0; }
+.boot-title { font: 650 19px/1.25 var(--sans); letter-spacing: -.02em; color: var(--ink); }
+.boot-sub { margin-top: 5px; font-size: 12px; line-height: 1.6; color: var(--ink-3); }
+.boot-sub b { font-family: var(--mono); font-size: 11px; color: var(--ink-2); font-weight: 600; }
+.boot-pick {
+  width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--accent-solid); border-radius: var(--r-md);
+  background: var(--accent-solid); color: #fff;
+  font: 600 13px/1 var(--sans); cursor: pointer;
+}
+.boot-pick:hover { filter: brightness(1.06); }
+.boot-pick:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.boot-ico { flex: 0 0 auto; }
+.boot-err {
+  margin-top: 10px; padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--bad-bg); border: 1px solid var(--bad-line); color: var(--bad-ink);
+  font-size: 11.5px; line-height: 1.5; white-space: pre-wrap;
+}
+.boot-err[hidden] { display: none; }
+.boot-recent { margin-top: 20px; }
+.boot-sec {
+  font: 600 10.5px/1 var(--sans); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 8px;
+}
+.boot-list { display: flex; flex-direction: column; gap: 2px; max-height: 42vh; overflow-y: auto; }
+.boot-row {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer;
+  border: 1px solid transparent;
+}
+.boot-row:hover { background: var(--panel-2); border-color: var(--line); }
+.boot-row:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; background: var(--panel-2); }
+.boot-row-main { min-width: 0; flex: 1 1 auto; }
+.boot-row-name { font: 600 13px/1.3 var(--sans); color: var(--ink); }
+.boot-row-path {
+  margin-top: 1px; font: 10.5px/1.35 var(--mono); color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.boot-row-meta { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.boot-badge {
+  padding: 2px 6px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--ink-2); font: 10.5px/1.4 var(--mono);
+}
+.boot-when { font-size: 10.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.boot-x {
+  flex: 0 0 auto; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--r-xs);
+  display: grid; place-items: center; background: transparent; color: var(--ink-3);
+  font: 14px/1 var(--sans); cursor: pointer; opacity: 0;
+}
+.boot-row:hover .boot-x { opacity: 1; }
+.boot-x:hover { background: var(--bad-bg); color: var(--bad-ink); }
+.boot-row.gone { opacity: .5; }
+.boot-row.gone .boot-row-name { text-decoration: line-through; }
+.boot-empty { padding: 14px 2px; font-size: 12px; color: var(--ink-3); }
+.boot-foot {
+  margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+  font-size: 11px; line-height: 1.6; color: var(--ink-3);
+}
+.boot-foot b { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
+.boot-mask.busy .boot-pick { opacity: .6; pointer-events: none; }

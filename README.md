@@ -35,6 +35,59 @@
 
 策划机器**不需要装 Node.js**，只需要 Windows 自带的 PowerShell。
 
+## Windows 桌面版（Tauri，不用装任何运行时）
+
+浏览器版需要一个命令行窗口一直开着；桌面版是**单个 exe**，双击就用，适合发给策划。
+
+### 出包
+
+```bash
+cd config-studio
+npm install
+npm run tauri:build     # = tauri build --no-bundle
+```
+
+产物：`src-tauri/target/release/config-studio.exe`（免安装，拷走即用）。
+想再要安装包（NSIS）就去掉 `--no-bundle`，但那一步要从 GitHub 下 NSIS，国内可能超时。
+
+### 第一次打开
+
+1. 双击 `config-studio.exe` → 出现启动界面
+2. 点「选择文件夹…」，选配置仓库根目录（或它的 `configs` 目录，两种都认）
+3. 目录校验通过后直接进工作台；之后启动会把最近 8 个目录列在启动界面，点一下（或 `Tab` 选中后 `Enter`）就进
+
+启动界面的焦点默认在「选择文件夹」上，按 `Enter` 直接开对话框。
+
+### 换目录
+
+点顶栏左上角的仓库名（如 `dr_config_repo`）→ 清掉当前目录上下文 → 回到启动界面重新选。
+
+### 桌面版和浏览器版的区别
+
+| 项 | 浏览器版（`启动.bat`） | 桌面版（exe） |
+|---|---|---|
+| 依赖 | Windows PowerShell + 浏览器 | 无（WebView2 是 Win10/11 自带组件） |
+| 端口 | 占 127.0.0.1:5179 | 不开端口 |
+| 备份存在哪 | `dist/backups/` | `%APPDATA%\com.configstudio.app\backups` |
+| 目录记忆 | `config-dir.txt` / `-ConfigDir` | `%APPDATA%\com.configstudio.app\recent.json` |
+| 编辑 / 列编辑 / diff / 撤销 | 全有 | 全有（前端完全一致，只有读写文件换成了 Rust 命令） |
+
+### 国内构建注意
+
+`crates.io` 官方源在国内基本拉不动，仓库里带了 `.cargo/config.toml` 指向 rsproxy 镜像：
+
+```toml
+[source.crates-io]
+replace-with = "rsproxy-sparse"
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+[net]
+git-fetch-with-cli = true
+```
+
+不在国内就把这个文件删掉（会回落到官方源）。
+
+图标是脚本生成的（橙色方块 + 网格），改配色就改 `scripts/make-icon.mjs` 然后 `npm run icon`。
 ## 快捷键总表（按 `?` 打开）
 
 顶栏右上角的 `?` 按钮，或直接按 `?`（`Shift` + `/`），会弹出这张表；`?` 或 `Esc` 关闭。

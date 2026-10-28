@@ -86,8 +86,15 @@
     return Math.min(maxByWindow, Math.max(MIN, w));
   }
 
+  /* 只接受「这个窗口里放得下」的历史宽度。localStorage 里如果留着别的窗口尺寸下算出来的
+     巨大值（比如 1180），直接套上去会让中间表格只剩一两百像素，看起来像布局坏了。 */
   const saved = parseInt(localStorage.getItem(KEY) || '', 10);
-  if (Number.isFinite(saved)) apply(saved);
+  const savedMax = Math.max(MIN, window.innerWidth - 248 - CENTER_MIN);
+  if (Number.isFinite(saved) && saved >= MIN && saved <= savedMax) {
+    apply(saved);
+  } else if (Number.isFinite(saved)) {
+    try { localStorage.removeItem(KEY); } catch (e) {}
+  }
 
   const grip = document.getElementById('detail-grip');
   const detail = document.getElementById('detail');
