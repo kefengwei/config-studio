@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "./components.css" layer(components);
+
+/* 设计令牌：颜色不写死，直接引用 components.css 里的运行时变量。
+   用 @theme inline 才能把 var() 原样内联进 utility，
+   这样暗色主题（:root.dark / prefers-color-scheme）改一次变量，Tailwind 工具类一起跟着变。 */
+@theme inline {
+  --font-sans: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-ref: var(--ref);
+  --color-enum: var(--enum);
+  --color-num: var(--num);
+}
+
+@layer base {
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); }
+  ::selection { background: var(--accent-line); }
+}

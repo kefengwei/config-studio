@@ -1,0 +1,11 @@
+# 依赖（npm install 可重建）
+node_modules/
+
+# 运行期数据：每次写盘的自动备份 + 写入历史
+dist/backups/
+
+# 本机的配置仓库路径（示例见 config-dir.example.txt）
+config-dir.txt
+dist/config-dir.txt
+
+*.log

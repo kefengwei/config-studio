@@ -1,0 +1,4 @@
+# 把下面这一行改成你的配置仓库路径（含 configs/Config_*.json 的目录），
+# 然后另存为 config-dir.txt（这个文件不进版本库）。
+# 也可以直接写配置仓库里的 configs 目录，两种都认。
+D:/path/to/dr_config_repo
