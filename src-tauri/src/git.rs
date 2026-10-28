@@ -329,3 +329,38 @@ pub fn push(dir: &Path) -> Result<String, String> {
   let out = run(&root, &["push"])?;
   Ok(out.trim().to_string())
 }
+
+/// 只提交用户勾选的文件。
+///
+/// 先 `git add -A -- <paths>`（未跟踪的新文件也能进 index），
+/// 再 `git commit -m <msg> -- <paths>` —— 带 pathspec 的 commit 只提交这些路径，
+/// index 里其它文件（比如手动 stage 过的）不会被卷进来。
+/// 不做 --amend、不改写历史；提交完由用户自己点推送。
+pub fn commit(dir: &Path, message: &str, paths: &[String]) -> Result<String, String> {
+  let root = repo_root(dir)?;
+  let msg = message.trim();
+  if msg.is_empty() {
+    return Err("提交信息不能为空".to_string());
+  }
+  let clean: Vec<String> = paths
+    .iter()
+    .map(|p| p.trim().to_string())
+    .filter(|p| !p.is_empty() && !p.starts_with('-'))
+    .collect();
+  if clean.is_empty() {
+    return Err("没有勾选任何文件".to_string());
+  }
+
+  let mut add: Vec<String> = vec!["add".into(), "-A".into(), "--".into()];
+  add.extend(clean.iter().cloned());
+  let add_refs: Vec<&str> = add.iter().map(|s| s.as_str()).collect();
+  run(&root, &add_refs)?;
+
+  let mut cm: Vec<String> = vec!["commit".into(), "-m".into(), msg.to_string(), "--".into()];
+  cm.extend(clean.iter().cloned());
+  let cm_refs: Vec<&str> = cm.iter().map(|s| s.as_str()).collect();
+  run(&root, &cm_refs)?;
+
+  let out = run(&root, &["log", "-1", "--pretty=format:%h %s"])?;
+  Ok(out.trim().to_string())
+}

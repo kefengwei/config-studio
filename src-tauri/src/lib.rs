@@ -422,6 +422,15 @@ fn git_push(state: State<'_, AppState>) -> Result<String, String> {
   git::push(&git_dir(&state)?)
 }
 
+#[tauri::command]
+fn git_commit(
+  state: State<'_, AppState>,
+  message: String,
+  paths: Option<Vec<String>>,
+) -> Result<String, String> {
+  git::commit(&git_dir(&state)?, &message, &paths.unwrap_or_default())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -446,7 +455,8 @@ pub fn run() {
       git_diff,
       git_log,
       git_pull,
-      git_push
+      git_push,
+      git_commit
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

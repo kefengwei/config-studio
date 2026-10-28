@@ -250,10 +250,24 @@ for (const [name, e] of Object.entries(parseEnums())) {
 }
 
 /* ---------- 5. 执行器目录（遍历所有 schema 的 oneOf 分支） ---------- */
+/* schema 里「Name 是 const + 有 JsonInput」的多态容器有四个，必须按容器区分：
+   - ActuatorInstanceData      = 真正的执行器（发放物品、加属性…），共 52 个
+   - ProgressTrackerInstanceData = 进度追踪器分支（Statistic / ArenaRank / TimeControlTurn…）
+   - StatisticDefineInstanceData = 统计定义分支（StatisticDefineGiftPackBuy…，104 个）
+   - ExtraActionDefineInstanceData = 额外行为定义分支（ExtraActionDefine_BattleFailed…）
+   旧实现不分容器，把后三类也写进 actuators，导致执行器下拉里出现上百个统计定义名。
+   现在每条都记 base（所属多态容器），前端只把 base = ActuatorInstanceData 的列进下拉；
+   其余三类仍保留在目录里，因为详情/编辑卡片要靠它拿到 desc 与参数元数据。 */
 const actuators = {};
-function collectActuators(node, table) {
+const POLY_BASES = new Set([
+  'ActuatorInstanceData',
+  'ProgressTrackerInstanceData',
+  'StatisticDefineInstanceData',
+  'ExtraActionDefineInstanceData',
+]);
+function collectActuators(node, table, base) {
   if (!node || typeof node !== 'object') return;
-  if (Array.isArray(node)) return node.forEach((x) => collectActuators(x, table));
+  if (Array.isArray(node)) return node.forEach((x) => collectActuators(x, table, base));
   const np = node.properties && node.properties.Name;
   if (np && np.const && node.properties.JsonInput) {
     const name = np.const;
@@ -262,12 +276,16 @@ function collectActuators(node, table) {
       for (const [pn, pv] of Object.entries(node.properties.JsonInput.properties || {})) {
         params[pn] = { type: pv.type || 'any', desc: pv.description || '', target: hintTarget(pv.description) };
       }
-      actuators[name] = { name, desc: np.description || '', params, definedIn: table };
+      actuators[name] = { name, base: base || '', desc: np.description || '', params, definedIn: table };
     }
   }
-  for (const v of Object.values(node)) collectActuators(v, table);
+  for (const v of Object.values(node)) collectActuators(v, table, base);
 }
-for (const [table, sc] of Object.entries(schemas)) collectActuators(sc.definitions || {}, table);
+for (const [table, sc] of Object.entries(schemas)) {
+  for (const [dn, dv] of Object.entries(sc.definitions || {})) {
+    collectActuators(dv, table, POLY_BASES.has(dn) ? dn : '');
+  }
+}
 
 /* ---------- 5b. 数据驱动：推断执行器参数 → 目标表 ---------- */
 const paramValues = {};
@@ -331,7 +349,14 @@ function classify(p, defs) {
     if (target && target.oneOf) return { kind: 'poly', def: ref, desc: p.description || '' };
     return { kind: 'object', def: ref, desc: p.description || '' };
   }
-  if (p.oneOf) return { kind: 'poly', desc: p.description || '', variants: p.oneOf.length };
+  if (p.oneOf) {
+    /* 内联 oneOf 常常只是「外层包一层，里面一个 $ref」：
+       Config_Task.ProgressTracker = { description:'进度追踪器', oneOf:[{$ref:'#/definitions/ProgressTrackerInstanceData'}] }
+       若只记 variants 就丢掉容器名，前端无法把「进度追踪器」和「执行器」区分开。 */
+    const refs = p.oneOf.map((x) => (x && x['$ref'] ? x['$ref'].split('/').pop() : null)).filter(Boolean);
+    const polyDef = refs.find((r) => defs[r] && defs[r].oneOf) || undefined;
+    return { kind: 'poly', ...(polyDef ? { def: polyDef } : {}), desc: p.description || '', variants: p.oneOf.length };
+  }
   if (p.type === 'array') {
     const it = p.items || {};
     if (it['$ref']) {
@@ -397,7 +422,8 @@ const semantics = {
   stats: {
     tables: baseTables.length,
     rows: baseTables.reduce((n, t) => n + (configs[t].Items || []).length, 0),
-    actuators: Object.keys(actuators).length,
+    actuators: Object.values(actuators).filter((a) => a.base === 'ActuatorInstanceData').length,
+    polyEntries: Object.values(actuators).filter((a) => a.base !== 'ActuatorInstanceData').length,
     refFields: Object.keys(refTargets).length,
     enums: Object.keys(enumBySchemaDef).length,
     enumsWithChinese: Object.values(enumBySchemaDef).filter((m) => Object.values(m).some((l) => /[\u4e00-\u9fa5]/.test(l))).length,

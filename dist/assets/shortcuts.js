@@ -18,11 +18,16 @@
     { title: '编辑与保存', rows: [
       ['E', '编辑选中行'],
       ['Delete', '删除选中行（先进待保存队列）'],
+      ['Ctrl D', '复制选中行（进新增队列，填新行名后保存）'],
       ['Ctrl Enter', '应用修改（编辑表单里）'],
       ['Ctrl S', '应用修改（编辑表单里）/ 预览并保存（有待保存改动时）'],
       ['Esc', '取消编辑 / 关闭最上层弹层'],
       ['Ctrl Z', '撤销最近一次保存'],
       ['C', '打开当前表的列编辑'],
+    ] },
+    { title: 'Git 面板（仅桌面版）', rows: [
+      ['Ctrl Enter', '提交勾选的变更'],
+      ['Esc', '关闭文件 diff → 分支选择器 → 抽屉'],
     ] },
     { title: '界面', rows: [
       ['T', '切换明暗主题'],
@@ -89,7 +94,7 @@
   }
 
   function overlayOpen() {
-    return !!document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask');
+    return !!document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask, .gd-mask:not([hidden])');
   }
 
   function editing() { return !!document.getElementById('ed-apply'); }

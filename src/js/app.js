@@ -1195,7 +1195,7 @@ document.addEventListener('keydown', (e) => {
      和 E / Delete 一样要避让输入框、弹层和编辑态；行已进删除队列也照常能选。 */
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
   if (typing) return;
-  if (document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask')) return;
+  if (document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask, .gd-mask:not([hidden])')) return;
   if (document.getElementById('ed-apply')) return;
   let moved = false;
   if (e.key === 'ArrowDown') moved = moveSelection(1);

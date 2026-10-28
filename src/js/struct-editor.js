@@ -56,7 +56,7 @@ const SE = (() => {
 
   /* ---------- 中文标签 ---------- */
   /* 高频执行器中文名：类型定义里只有英文 desc（类名拆词），中文只到参数级。
-     实测全库 21931 次调用 / 84 个执行器，下面 9 个覆盖 96.1%，长尾回落英文 desc。 */
+     实测全库 21931 次调用 / 52 个真执行器，下面 9 个覆盖 96.1%，长尾回落英文 desc。 */
   const ACT_CN = {
     AddCatalogItem: '发放物品',
     WeightRandom: '按权重随机抽取',
@@ -89,23 +89,72 @@ const SE = (() => {
     return k.replace(/RowName$/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
   }
 
-  /* ---------- 执行器名面板：注册成 ref-picker 的数据源 ---------- */
-  function actuatorRows() {
-    const rows = Object.entries(state.sem.actuators).map(([name, a]) => {
-      const cn = ACT_CN[name] || '';
-      const desc = (a && a.desc) || '';
-      return { row: name, notes: cn && desc ? cn + ' · ' + desc : (cn || desc) };
-    });
+  /* ---------- 多态名面板：按 schema 容器分数据源 ----------
+     语义层里所有「Name 是 const + 带 JsonInput」的类型都放在 actuators 表里，
+     但它们是四个互不相通的多态容器：
+       ActuatorInstanceData        执行器（发放物品、加属性…）52 个
+       ProgressTrackerInstanceData 进度追踪器（Statistic / ArenaRank…）9 个
+       StatisticDefineInstanceData 统计定义（StatisticDefineLevelCompleted…）107 个
+       ExtraActionDefineInstanceData 额外行为（ExtraActionDefine_BattleFailed…）11 个
+     字段该用哪个容器，优先看数据里现有名字的 base（最准），
+     其次看字段语义（build-semantics 把 poly 字段的 def 带过来了）。 */
+  const POLY_KINDS = {
+    ActuatorInstanceData: { src: 'actuator', label: '执行器', ph: '执行器名，例如 AddCatalogItem', eg: 'AddCatalogItem' },
+    ProgressTrackerInstanceData: { src: 'tracker', label: '进度追踪器', ph: '进度追踪器名，例如 Statistic', eg: 'Statistic' },
+    StatisticDefineInstanceData: { src: 'statisticdef', label: '统计定义', ph: '统计定义名，例如 StatisticDefineLevelCompleted', eg: 'StatisticDefineLevelCompleted' },
+    ExtraActionDefineInstanceData: { src: 'extraaction', label: '额外行为', ph: '行为名，例如 ExtraActionDefine_BattleFailed', eg: 'ExtraActionDefine_BattleFailed' },
+  };
+  const kindOfBase = (base) => POLY_KINDS[base] || POLY_KINDS.ActuatorInstanceData;
+  function baseOfName(name) {
+    const m = name && state.sem.actuators[name];
+    return (m && m.base) || '';
+  }
+  /* 新建的空卡片还没有 Name，就看看同字段的其它行用的是什么容器，
+     否则 ProgressTracker 里点「+ 添加」会先弹出执行器列表。 */
+  function findNamedBase(v, depth) {
+    if (!v || typeof v !== 'object' || (depth || 0) > 4) return '';
+    if (Array.isArray(v)) {
+      for (const x of v) { const b = findNamedBase(x, (depth || 0) + 1); if (b) return b; }
+      return '';
+    }
+    if (typeof v.Name === 'string' && v.Name) return baseOfName(v.Name);
+    for (const k of Object.keys(v)) { const b = findNamedBase(v[k], (depth || 0) + 1); if (b) return b; }
+    return '';
+  }
+  function baseFromRows(fieldName) {
+    for (const r of (state.rows || [])) {
+      const b = findNamedBase(r[fieldName], 0);
+      if (b) return b;
+    }
+    return '';
+  }
+
+  /* 当前要渲染的这一个卡片属于哪个容器：
+     数据里的名字 > 字段语义（schema）> 同字段其它行 > 执行器 */
+  function polyBaseOf(name, fieldDef, fieldName) {
+    return baseOfName(name) || fieldDef || (fieldName ? baseFromRows(fieldName) : '') || 'ActuatorInstanceData';
+  }
+
+  function rowsOfBase(base) {
+    const rows = Object.entries(state.sem.actuators)
+      .filter(([, a]) => ((a && a.base) || 'ActuatorInstanceData') === base)
+      .map(([name, a]) => {
+        const cn = ACT_CN[name] || '';
+        const desc = (a && a.desc) || '';
+        return { row: name, notes: cn && desc ? cn + ' · ' + desc : (cn || desc) };
+      });
     rows.sort((x, y) => x.row.localeCompare(y.row));
     return rows;
   }
   if (window.RP) {
-    window.RP.source('actuator', () => ({
-      label: '执行器',
-      rows: actuatorRows(),
-      placeholder: '搜索执行器名或中文说明…',
-      empty: '没有匹配的执行器，可直接输入名称',
-    }));
+    for (const [base, k] of Object.entries(POLY_KINDS)) {
+      window.RP.source(k.src, () => ({
+        label: k.label,
+        rows: rowsOfBase(base),
+        placeholder: '搜索' + k.label + '名或中文说明…',
+        empty: '没有匹配的' + k.label + '，可直接输入名称',
+      }));
+    }
   }
 
   /* ---------- 标量输入 ---------- */
@@ -144,23 +193,25 @@ const SE = (() => {
     return out;
   }
 
-  function actHtml(a, path) {
+  function actHtml(a, path, fieldDef) {
     const meta = state.sem.actuators[a.Name];
+    const base = polyBaseOf(a.Name, fieldDef, path[0]);
+    const kind = kindOfBase(base);
     const p = isPlainObj(a.JsonInput) ? a.JsonInput : {};
     const defs = (meta && meta.params) || {};
     const keys = [...Object.keys(defs), ...Object.keys(p).filter((k) => !defs[k])];
     const params = keys.length
       ? keys.map((k) => paramHtml(k, p[k], defs[k], path.concat('JsonInput', k))).join('')
-      : '<div class="se-none">这个执行器没有参数</div>';
+      : '<div class="se-none">这个' + escA(kind.label) + '没有参数</div>';
     return '<div class="se-act">' +
       '<div class="se-act-top">' +
         '<span class="rp-wrap">' +
-          '<input class="ed-ctl se-act-name" data-act="actname" data-rp-src="actuator" data-p=' + P(path.concat('Name')) +
-            ' value="' + escA(a.Name || '') + '" placeholder="执行器名，例如 AddCatalogItem" />' +
-          '<button type="button" class="rp-btn" data-rp-btn title="从已有执行器里选">▾</button>' +
+          '<input class="ed-ctl se-act-name" data-act="actname" data-rp-src="' + kind.src + '" data-p=' + P(path.concat('Name')) +
+            ' value="' + escA(a.Name || '') + '" placeholder="' + escA(kind.ph) + '" />' +
+          '<button type="button" class="rp-btn" data-rp-btn title="从已有' + escA(kind.label) + '里选">▾</button>' +
         '</span>' +
         '<div class="se-act-desc" title="' + escA((meta && meta.desc) || '') + '">' +
-          (meta ? escA(actLabel(a.Name, meta.desc)) : '<span class="se-warn">未知执行器</span>') + '</div>' +
+          (meta ? escA(actLabel(a.Name, meta.desc)) : '<span class="se-warn">未知' + escA(kind.label) + '</span>') + '</div>' +
       '</div>' +
       '<div class="se-params">' + params + '</div></div>';
   }
@@ -182,9 +233,11 @@ const SE = (() => {
   }
 
   /* ---------- 递归渲染 ---------- */
-  function html(v, path) {
+  /* polyBase 只在字段顶层有效：它说明「这个字段的多态容器是执行器还是进度追踪器」。
+     往下递归时不传，让卡片按数据里现有名字的 base 自行判断。 */
+  function html(v, path, polyBase) {
     if (Array.isArray(v)) return arrHtml(v, path);
-    if (isActuator(v)) return actHtml(v, path);
+    if (isActuator(v)) return actHtml(v, path, polyBase);
     if (isPlainObj(v)) return objHtml(v, path);
     return '<div class="se-prim">' + primInput(v, path, path[path.length - 1]) + '</div>';
   }
@@ -272,7 +325,7 @@ const SE = (() => {
 
     /** 字段级渲染：外面包一层 data-se-field，方便局部重渲染 */
     fieldHtml(field, value) {
-      return '<div class="se" data-se-field="' + escA(field.name) + '">' + html(value, [field.name]) + '</div>';
+      return '<div class="se" data-se-field="' + escA(field.name) + '">' + html(value, [field.name], field.def) + '</div>';
     },
 
     /** 把事件委托挂到表单根上，draft.values 是 { 字段名: 值 } */
@@ -281,7 +334,9 @@ const SE = (() => {
       const rerender = (field) => {
         const box = formEl.querySelector('[data-se-field="' + field + '"]');
         if (!box) return;
-        box.innerHTML = html(getAt(draft.values, [field]), [field]);
+        const fd = (state.sem.tables[state.cur] || {}).fields;
+        const fdef = fd ? (fd.find((x) => x.name === field) || {}).def : '';
+        box.innerHTML = html(getAt(draft.values, [field]), [field], fdef);
       };
 
       const write = (el) => {

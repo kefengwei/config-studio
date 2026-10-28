@@ -24,6 +24,9 @@
     err: '',
     diffOf: '',
     diffText: '',
+    sel: null,        /* Set<path>，null = 还没初始化，首次全选 */
+    selTouched: false,/* 用户手动改过勾选后，刷新不再自动全选 */
+    msg: '',          /* 提交信息草稿 */
   };
 
   let btn = null;
@@ -197,6 +200,7 @@
        分别等到切到历史页、点开分支选择器时再拉。 */
     await load('info');
     await load('files');
+    syncSel();
     if (G.info && G.info.isRepo) {
       btn.hidden = false;
       btn.title = 'Git · ' + (G.info.branch || '(detached)') + (G.info.dirty ? ' · ' + G.info.dirty + ' 个变更' : '');
@@ -209,6 +213,7 @@
 
   async function openPanel() {
     G.open = true;
+    G.err = '';
     mask.hidden = false;
     panel.hidden = false;
     document.body.classList.add('gd-open');
@@ -281,14 +286,88 @@
 
   function filesHtml() {
     if (!G.files.length) return '<div class="gd-empty">工作区干净，没有未提交的改动</div>';
-    return '<div class="gd-files">' + G.files.map((f) => {
+    const picked = selected().length;
+    const allOn = picked === G.files.length;
+    return '<div class="gd-fbar">' +
+      '<label class="gd-ckall"><input type="checkbox" id="gd-ckall"' + (allOn ? ' checked' : '') + ' />' +
+      '<span>全选</span></label>' +
+      '<span class="gd-sel">已选 ' + picked + ' / ' + G.files.length + '</span></div>' +
+      '<div class="gd-files">' + G.files.map((f) => {
       const on = G.diffOf === f.path;
+      const ck = isSel(f.path) ? ' checked' : '';
       return '<div class="gd-f' + (on ? ' on' : '') + '">' +
+        '<input type="checkbox" class="gd-ck" data-ck="' + esc2(f.path) + '"' + ck + ' title="计入这次提交" />' +
         '<button class="gd-frow" data-x="diff" data-p="' + esc2(f.path) + '">' +
         '<span class="gd-st ' + (f.untracked ? 'u' : f.staged ? 's' : 'm') + '" title="' + esc2(f.code) + '">' + esc2(f.label) + '</span>' +
         '<span class="gd-path">' + esc2(f.path) + '</span></button>' +
         '</div>';
     }).join('') + '</div>';
+  }
+
+  /* ---------------- 提交 ---------------- */
+  function isSel(p) { return !G.sel || G.sel.has(p); }
+
+  function selected() {
+    if (!G.files.length) return [];
+    return G.files.map((f) => f.path).filter(isSel);
+  }
+
+  function syncSel() {
+    const all = G.files.map((f) => f.path);
+    if (!G.selTouched) { G.sel = new Set(all); return; }
+    const keep = new Set();
+    all.forEach((p) => { if (G.sel && G.sel.has(p)) keep.add(p); });
+    G.sel = keep;
+  }
+
+  function toggleSel(p, on) {
+    if (!G.sel) G.sel = new Set(G.files.map((f) => f.path));
+    G.selTouched = true;
+    if (on) G.sel.add(p); else G.sel.delete(p);
+  }
+
+  function commitHtml() {
+    const n = selected().length;
+    const busy = G.busy === 'commit';
+    return '<div class="gd-commit">' +
+      '<textarea id="gd-msg" class="gd-msg" rows="3" spellcheck="false"' +
+      (busy ? ' disabled' : '') +
+      ' placeholder="提交信息（必填），例如：feat: 调整新手引导奖励">' + esc2(G.msg) + '</textarea>' +
+      '<div class="gd-cbar">' +
+      '<span class="gd-hint">只提交勾选的 ' + n + ' 个文件 · 不会自动推送</span>' +
+      '<button class="btn primary" data-x="commit"' + (busy || !n ? ' disabled' : '') + '>' +
+      (busy ? '提交中…' : '提交') + '</button>' +
+      '</div></div>';
+  }
+
+  async function doCommit() {
+    if (G.busy) return;
+    const msg = (G.msg || '').trim();
+    const paths = selected();
+    if (!msg) { G.err = '请先填写提交信息'; render(); focusMsg(); return; }
+    if (!paths.length) { G.err = '请至少勾选一个文件'; render(); return; }
+    G.busy = 'commit';
+    G.err = '';
+    render();
+    try {
+      const out = await invoke('git_commit', { message: msg, paths });
+      G.msg = '';
+      const st = document.getElementById('status');
+      if (st) st.textContent = '已提交 ' + (out || '');
+      G.logLoaded = false;
+      G.selTouched = false;
+      await refresh();
+      if (G.tab === 'log') await load('log');
+    } catch (err) {
+      G.err = '提交失败：' + String(err);
+    }
+    G.busy = '';
+    render();
+  }
+
+  function focusMsg() {
+    const t = panel && panel.querySelector('#gd-msg');
+    if (t) { t.focus(); const n = t.value.length; t.setSelectionRange(n, n); }
   }
 
   function logHtml() {
@@ -314,10 +393,44 @@
           '<button class="gd-tab' + (tab === 'changes' ? ' on' : '') + '" data-x="tab" data-t="changes">变更 ' + dirty + '</button>' +
           '<button class="gd-tab' + (tab === 'log' ? ' on' : '') + '" data-x="tab" data-t="log">历史</button>' +
           '</div>' +
-          '<div class="gd-body">' + (tab === 'changes' ? filesHtml() : logHtml()) + '</div>'
+          '<div class="gd-body">' + (tab === 'changes' ? filesHtml() : logHtml()) + '</div>' +
+          (tab === 'changes' && G.files.length ? commitHtml() : '')
         : '<div class="gd-body"></div>');
 
     panel.querySelectorAll('[data-x]').forEach((el) => el.addEventListener('click', onAct));
+
+    const ckall = panel.querySelector('#gd-ckall');
+    if (ckall) {
+      ckall.addEventListener('change', () => {
+        G.selTouched = true;
+        G.sel = ckall.checked ? new Set(G.files.map((f) => f.path)) : new Set();
+        render();
+      });
+    }
+    panel.querySelectorAll('[data-ck]').forEach((el) => el.addEventListener('change', () => {
+      toggleSel(el.dataset.ck, el.checked);
+      render();
+    }));
+
+    const msgBox = panel.querySelector('#gd-msg');
+    if (msgBox) {
+      /* 打字只更新草稿与计数，不整块重渲染，否则光标会跳 */
+      msgBox.addEventListener('input', () => {
+        G.msg = msgBox.value;
+        const n = selected().length;
+        const go = panel.querySelector('[data-x="commit"]');
+        if (go) go.disabled = !n;
+        const hint = panel.querySelector('.gd-hint');
+        if (hint) hint.textContent = '只提交勾选的 ' + n + ' 个文件 · 不会自动推送';
+      });
+      msgBox.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          doCommit();
+        }
+      });
+    }
+
     const q = panel.querySelector('#gd-q');
     if (q) {
       q.addEventListener('input', () => { G.q = q.value; const p = q.selectionStart; render(); const n = panel.querySelector('#gd-q'); if (n) { n.focus(); n.setSelectionRange(p, p); } });
@@ -380,6 +493,7 @@
       await refresh();
       return;
     }
+    if (x === 'commit') return doCommit();
     if (x === 'diff') {
       const p = el.dataset.p;
       if (G.diffOf === p && dp && !dp.hidden) closeDiff();

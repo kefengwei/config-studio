@@ -54,7 +54,7 @@
     applyTheme();
   }
   /* 快捷键 T 与顶栏按钮走同一个入口 */
-  window.LAYOUT = { toggleTheme: toggleTheme, effective: effective };
+  window.LAYOUT = { toggleTheme: toggleTheme, effective: effective, editFocus: editFocus };
   if (themeBtn) {
     themeBtn.onclick = toggleTheme;
     themeBtn.oncontextmenu = (e) => {
@@ -84,6 +84,37 @@
     // 上限由窗口决定：侧栏 248 + 中间最少 128
     const maxByWindow = Math.max(MIN, window.innerWidth - 248 - CENTER_MIN);
     return Math.min(maxByWindow, Math.max(MIN, w));
+  }
+
+  /* ---------- 编辑聚焦 ----------
+     进编辑/新增表单时，右栏自动拉宽到「中间只剩 RowName 那一列」，
+     退出时还原成进入前的宽度。用户在这期间拖动的手柄也不会被记进 localStorage，
+     否则下次启动就会套用一个超宽的右栏。 */
+  let beforeFocus = null;
+
+  /* 编辑时中栏该留多宽：刚好装下最长 RowName，但仍低于 narrow 阈值（320），
+     这样中栏自动切到「只显示 RowName」的单列模式，行名不被截断。 */
+  function centerNeed() {
+    let max = 0;
+    try {
+      const rows = (typeof state !== 'undefined' && state.rows) || [];
+      for (const r of rows) max = Math.max(max, String((r && r.RowName) || '').length);
+    } catch (e) {}
+    return Math.min(300, Math.max(180, Math.round(22 + max * 7.6)));
+  }
+
+  function editFocus(on) {
+    if (on) {
+      if (beforeFocus !== null) return;
+      beforeFocus = clamp(current());
+      apply(window.innerWidth - 248 - centerNeed());
+      document.body.classList.add('edit-focus');
+    } else {
+      if (beforeFocus === null) return;
+      apply(beforeFocus);
+      beforeFocus = null;
+      document.body.classList.remove('edit-focus');
+    }
   }
 
   /* 只接受「这个窗口里放得下」的历史宽度。localStorage 里如果留着别的窗口尺寸下算出来的
@@ -129,7 +160,8 @@
     document.body.classList.remove('col-resizing');
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
-    localStorage.setItem(KEY, String(current()));
+    /* 编辑聚焦期间的临时加宽不落盘，退出编辑会还原 */
+    if (beforeFocus === null) localStorage.setItem(KEY, String(current()));
   }
 
   grip.addEventListener('dblclick', () => {

@@ -1377,10 +1377,21 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 .gd-empty { padding: 24px 14px; text-align: center; color: var(--ink-3); font-size: 12px; }
 .gd-load { padding: 20px 14px; color: var(--ink-3); font-size: 12px; }
 
+/* 变更列表上方的「全选 + 已选计数」条 */
+.gd-fbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 7px; border-bottom: 1px solid var(--line-soft);
+  font-size: 11px; color: var(--ink-3);
+}
+.gd-ckall { display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+.gd-ckall input, .gd-ck { width: 13px; height: 13px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.gd-sel { margin-left: auto; font-variant-numeric: tabular-nums; }
+
 .gd-files { display: flex; flex-direction: column; }
+.gd-f { display: flex; align-items: center; gap: 2px; padding-left: 12px; }
 .gd-frow {
   display: flex; align-items: baseline; gap: 8px; width: 100%;
-  padding: 6px 14px; border: 0; background: transparent; cursor: pointer;
+  padding: 6px 14px 6px 2px; border: 0; background: transparent; cursor: pointer;
   text-align: left; color: var(--ink);
 }
 .gd-frow:hover { background: var(--panel-2); }
@@ -1396,6 +1407,22 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
   flex: 1 1 auto; min-width: 0; font: 11px/1.45 var(--mono);
   word-break: break-all;
 }
+/* 提交区：固定在变更列表下方，列表怎么滚都不动 */
+.gd-commit {
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 14px 12px; border-top: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.gd-msg {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 54px; max-height: 132px;
+  padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--ctl-bg); color: var(--ink); font: 12px/1.5 var(--sans);
+}
+.gd-msg:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.gd-msg::placeholder { color: var(--ink-3); }
+.gd-cbar { display: flex; align-items: center; gap: 10px; }
+.gd-hint { flex: 1 1 auto; min-width: 0; font-size: 10.5px; color: var(--ink-3); }
+
 /* ---------- 文件 diff：贴在 Git 抽屉左侧的宽面板 ----------
    抽屉只有 420px，unified diff 在这里几乎每行都折行，
    所以点变更文件时在左侧另开一块更宽的只读区，两边并排看。 */
@@ -1474,5 +1501,5 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 
 /* ---------- 工具栏：新增行按钮 ---------- */
 .toolbar .spacer { flex: 1 1 auto; }
-#btn-new-row { flex: 0 0 auto; }
-.center.narrow #btn-new-row { display: none; }
+#btn-new-row, #btn-copy-row { flex: 0 0 auto; }
+.center.narrow #btn-new-row, .center.narrow #btn-copy-row { display: none; }

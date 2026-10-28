@@ -8,7 +8,7 @@
     "css": "tailwindcss -i ./src/styles/input.css -o ./dist/assets/app.css --minify",
     "css:watch": "tailwindcss -i ./src/styles/input.css -o ./dist/assets/app.css --watch",
     "semantics": "node ./scripts/build-semantics.mjs",
-    "build": "npm run semantics && npm run css && node ./scripts/build.mjs",
+    "build": "node ./scripts/build.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build --no-bundle",

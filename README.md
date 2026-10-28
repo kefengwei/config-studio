@@ -1,7 +1,8 @@
 # 配置工作台（Config Studio）
 
-给策划用的配置维护工具：在浏览器里浏览、筛选、单行编辑、Excel 式批量改列，
+给策划用的配置维护工具：浏览、筛选、单行编辑、新增行、复制行、Excel 式批量改列，
 所有改动先看 diff 再落盘，每次保存自动备份、可一键撤销。
+两种形态：浏览器版（双击 `dist/启动.bat`）和 Windows 桌面版（单个 exe，另带 Git 面板）。
 
 ## 怎么用
 
@@ -50,6 +51,10 @@ npm run tauri:build     # = tauri build --no-bundle
 产物：`src-tauri/target/release/config-studio.exe`（免安装，拷走即用）。
 想再要安装包（NSIS）就去掉 `--no-bundle`，但那一步要从 GitHub 下 NSIS，国内可能超时。
 
+**改了前端必须重新出包**：`dist/` 是编译时内嵌进 exe 的，只跑 `npm run build` 不会更新 exe。
+顺序是 `npm run build` → `npm run tauri:build`。构建时会给 `index.html` 里的 css/js 统一加
+`?v=<时间戳>`，所以换包后不用手动清 WebView2 缓存，不会读到旧脚本。
+
 ### 第一次打开
 
 1. 双击 `config-studio.exe` → 出现启动界面
@@ -71,6 +76,7 @@ npm run tauri:build     # = tauri build --no-bundle
 | 备份存在哪 | `dist/backups/` | `%APPDATA%\com.configstudio.app\backups` |
 | 目录记忆 | `config-dir.txt` / `-ConfigDir` | `%APPDATA%\com.configstudio.app\recent.json` |
 | 编辑 / 列编辑 / diff / 撤销 | 全有 | 全有（前端完全一致，只有读写文件换成了 Rust 命令） |
+| Git 面板 | 无（拿不到 shell 权限） | 有（分支 / 变更 / 拉取 / 推送 / 提交 / 历史） |
 
 ### 国内构建注意
 
@@ -88,6 +94,7 @@ git-fetch-with-cli = true
 不在国内就把这个文件删掉（会回落到官方源）。
 
 图标是脚本生成的（橙色方块 + 网格），改配色就改 `scripts/make-icon.mjs` 然后 `npm run icon`。
+
 ## 快捷键总表（按 `?` 打开）
 
 顶栏右上角的 `?` 按钮，或直接按 `?`（`Shift` + `/`），会弹出这张表；`?` 或 `Esc` 关闭。
@@ -105,11 +112,14 @@ git-fetch-with-cli = true
 | 搜索 | `Ctrl` / `Cmd` + `Shift` + `F` | 筛选左侧配置表 |
 | 编辑 | `E` | 编辑选中行 |
 | 编辑 | `Delete` | 删除选中行（先进待保存队列，不直接写盘） |
+| 编辑 | `Ctrl+D` | 以选中行为模板复制一行（进新增队列，填新行名后保存） |
 | 编辑 | `Ctrl` / `Cmd` + `Enter` | 应用修改（编辑表单里） |
 | 编辑 | `Ctrl` / `Cmd` + `S` | 编辑表单里＝应用修改；有待保存改动时＝预览并保存 |
 | 编辑 | `Esc` | 取消编辑 / 关闭最上层弹层 |
 | 编辑 | `Ctrl` / `Cmd` + `Z` | 撤销最近一次保存（弹确认，走 `dist/backups/` 里的备份） |
 | 列编辑 | `C` | 打开当前表的列编辑（默认第一列，列名可再切） |
+| Git（桌面版） | `Ctrl` / `Cmd` + `Enter` | 提交勾选的变更（在提交信息框里） |
+| Git（桌面版） | `Esc` | 关文件 diff → 分支选择器 → 抽屉（逐层） |
 | 界面 | `T` | 切换明暗主题 |
 | 界面 | `?` | 打开 / 关闭快捷键面板 |
 
@@ -133,6 +143,37 @@ git-fetch-with-cli = true
 
 > 中栏被拖到只剩「行名」一列时，本表搜索框会被藏起来（空间不够）。这时按 `Ctrl+F` 会自动打开全库搜索面板，不会按了没反应。
 
+## 按属性筛选：先把范围缩到要改的行
+
+表格上方的「按属性筛选」是**按行本身的字段**筛行，和搜索框（按 RowName / 备注模糊匹配）互补：
+
+1. 选字段（`StandardCoinBase`、`DefineName`、`ConditionRowName`…，数组字段会标「（数组）」）
+2. 选运算符：`=`、`≠`、`>`、`≥`、`<`、`≤`、`包含`、`为空`、`非空`
+3. 填值 → 点「添加」，条件变成右上角一枚 chip，右上显示 `筛出 191 / 共 2380 行`
+
+几个约定：
+
+- **条件叠加是 AND**：`StandardCoinBase > 2000` + `DefineName = Main` = 191 行；每个 chip 上的 `×` 单独移除，`清除筛选` 一次清空。
+- **数组字段按单个元素匹配**：`Tags 包含 DailyTask` 匹配 `["DailyTask", "DailyTask_Progress"]`，不是匹配整串 JSON。
+- **筛选只影响「显示什么」和「批量改哪些」**，不改数据本身，切表自动清空。
+- 进列编辑时这些条件会**自动带过去**（主表格筛出 191 行，面板里也是这 191 行，不会变成全表 2380 行）。
+
+## 右侧详情：把配置翻译成人话
+
+点一行，右侧按字段逐个展开，每个字段都是「中文名 + 英文名 + 值 + 一句说明」：
+
+| 值的形态 | 显示方式 |
+|---|---|
+| 引用字段（`*RowName`） | 蓝 chip 显示目标行的备注 + `→ 目标表`，点 chip 直接跳过去；目标不存在时标红「目标不存在」 |
+| 枚举 | 中文（来自 C# 枚举的 `[Description]`）+ 原始数字 |
+| 布尔 | `是` / `否` / `未设置` |
+| 空值 | `未设置`（不会显示 `null`） |
+| 时长 | 原值 + 单位说明（格式是 `day.hour:min:sec`） |
+| 执行器数组 | 一张张卡片：执行器中文名 + 每个参数的中文标签 + 引用下拉 |
+| 多态字段 | JSON 里长着 `{"Name": …, "JsonInput": {…}}` 的字段有四种容器：**执行器**（52 个）、**进度追踪器**（9 个，`Statistic`/`ArenaRank`…）、**统计定义**（107 个，`StatisticDefineLevelCompleted`…）、**额外行为**（11 个，`ExtraActionDefine_BattleFailed`…）。工具按字段语义认出属于哪一种，各列各的，不会把统计定义混进执行器下拉 |
+| 阶梯 / 权重池 / 价格 / 区间 | 按形状渲染，例如「第 2 档 → 装备强化石 ×10」、`权重 100 → 残命魔杖 0 阶`、`每 10 个 → 钻石 ×1,500`、`338–676 战力 → 第 1 层` |
+
+这样策划不用去认 JSON 里的键名，也不需要跨表翻 RowName 的备注。
 ## 表格里用键盘选行
 
 不用鼠标，选中一行后右侧详情会跟着换：
@@ -175,12 +216,15 @@ config-studio/
 │  └─ 启动.bat
 ├─ src/                   ← 源码
 │  ├─ index.html
-│  ├─ js/                 ← app / edit / column-editor / struct-editor / ref-picker / git /
+│  ├─ js/                 ← boot / app / edit / column-editor / struct-editor / ref-picker / git /
 │  │                        data / json-edit / json-diff / layout / shortcuts
 │  └─ styles/             ← input.css（Tailwind 入口）+ components.css（组件样式）
 ├─ src-tauri/             ← 桌面版（Tauri 2 / Rust）
-│  ├─ src/lib.rs          ← 启动界面 + 配置文件读写 + 备份命令
-│  ├─ src/git.rs          ← git 面板的后端（info/status/branches/checkout/diff/log/pull/push）
+│  ├─ Cargo.toml          ← Rust 依赖
+│  ├─ build.rs
+│  ├─ capabilities/       ← WebView 权限声明
+│  ├─ src/lib.rs          ← 启动界面 + 配置读写 + 备份 / 撤销命令
+│  ├─ src/git.rs          ← git 面板后端（info / status / branches / checkout / diff / log / pull / push / commit）
 │  └─ tauri.conf.json     ← 把 dist/ 内嵌进 exe
 ├─ scripts/
 │  ├─ build.mjs           ← 一键构建：语义层 → CSS → 拷 js → 拷页面
@@ -188,18 +232,22 @@ config-studio/
 │  ├─ check-classes.mjs   ← 构建时检查 Tailwind 原子类是否撞了组件类名
 │  ├─ shot.mjs            ← 调试：headless Edge 打开 URL 截图
 │  ├─ cdp.mjs             ← 调试：连桌面版（9333 端口）执行一段 JS
-│  └─ cdp-shot.mjs        ← 调试：抓桌面版当前视口
+│  ├─ cdp-shot.mjs        ← 调试：抓桌面版当前视口
+│  └─ make-icon.mjs       ← 生成应用图标（橙色方块 + 网格），npm run icon
 └─ package.json
 ```
 
 ## 开发
 
 ```bash
-npm install          # 只装 tailwindcss（构建期依赖）
-npm run build        # 语义层 + CSS + js 全部重新生成
-npm run css:watch    # 改样式时用
-npm run serve        # 起服务（不开浏览器）
+npm install          # 构建期依赖：tailwindcss + @tauri-apps/cli
+npm run build        # 语义层 → CSS → 拷 js → 拷页面（一步全做，约 1 秒）
+npm run css:watch    # 只改样式时用
+npm run icon         # 重新生成应用图标
+npm run tauri:build  # 出桌面版 exe
 ```
+
+浏览器版没有单独的 npm 脚本，起服务就是双击 `dist/启动.bat`（不想自动开浏览器就加 `-NoBrowser`）。
 
 改了 C# 配置类（`src/DoriDori.Backend.Config`）后要重新 `npm run build`，
 语义层才会更新。后端仓库路径可用环境变量 `DR_CS_DIR` 覆盖。
@@ -245,9 +293,11 @@ cd config-studio && npm run build
 2. 重新导出 json schema（沿用现有的 schema 导出工具 → `json-schemas/*.json`）
 3. 在 `config-studio` 仓库根执行 `npm run build`
 
-   `build-semantics.mjs` 会读 `configs/*.json` + `json-schemas/*.json` + C# 枚举源码
-   （默认 `G:/Github/DoriDori.Backend/src/DoriDori.Backend.Config`，可用环境变量 `DR_CS_DIR` 指定），
-   重新生成 `dist/assets/semantics.json`。
+   `build-semantics.mjs` 会读三样输入，重新生成 `dist/assets/semantics.json`：
+
+   - `configs/*.json` 与 `json-schemas/*.json`：来自**配置仓库**（不是 config-studio 里）。
+     靠 `config-dir.txt`，或从项目根向上最多 6 级找第一个含 `configs/Config_*.json` 的目录来定位。
+   - C# 枚举源码：默认 `G:/Github/DoriDori.Backend/src/DoriDori.Backend.Config`，可用环境变量 `DR_CS_DIR` 指定。
 4. 把 `dist/` 拷给策划
 
 没重建会怎样：新字段在界面里看不到（打开行详情会看到 `N 个未知字段` 的黄色标记），
@@ -269,19 +319,30 @@ cd config-studio && npm run build
 
 ## 编辑与删除（都先进队列）
 
-点任意一行 → 右侧详情头部有 `编辑本行` / `删除本行`；表格上方的工具栏还有 `＋ 新增行`。三者都**不会立刻写文件**：
+点任意一行 → 右侧详情头部有 `编辑本行` / `复制本行` / `删除本行`；表格上方的工具栏还有 `⧉ 复制行` 与 `＋ 新增行`（没选行时「复制行」是灰的）。它们都**不会立刻写文件**：
 
 | 操作 | 表格里的样子 | 怎么落盘 |
 |---|---|---|
 | 改字段 | 行名前面出现橙色圆点 | 底部条「N 行待保存」→ 预览并保存 |
 | 删整行 | 整行划掉、红底 | 底部条「N 行待删除」→ 预览并保存 |
 | 新增整行 | 行还没进表格，详情区显示「已加入新增队列」 | 底部条「+N 行待新增」→ 预览并保存 |
+| 复制整行 | 同上（复制也是一次「新增」） | 同上 |
+
+**编辑时右栏会自动加宽**：进入编辑 / 新增行时，右栏撑到「中间只剩 RowName 一列」的宽度（按当前页最长的行名算，最多 300px），退出编辑（取消 / 应用 / 切行 / 切表）立刻还原成你拖动设定的宽度。编辑期间的临时加宽不会写进设置，下次打开还是原来的宽度。
 
 新增行的规则：
 
 - `RowName` 必填、不能含空格、表内不能重名（重名会当场拦下，不会进队列）。
 - 除 `RowName` 外的字段可以留空，之后再编辑；新增的行会追加到该表 `Items` 数组末尾。
 - 详情区提示「可以继续新增下一行」——连点 `＋ 新增行` 可以连续录入，全部进同一个队列。
+
+复制行的规则：
+
+- 先选中一行 → 点详情头部 `复制本行`（或工具栏 `⧉ 复制行`）。打开的是同一张「新增行」表单，只是字段已经按模板预填好。
+- **RowName 一定留空**：复制不会沿用原行名，必须填一个新名字（重名 / 带空格都会被拦下）。
+- 其余字段可以随便改；没动过的字段会**原样带进新行，连 JSON 类型都不变**（模板里写的是 `"0.75"`，新行里还是字符串，不会被改成数字）。
+- 模板里本来没有的字段不会出现在新行里；清空某个原本有值的字段等同于保留模板值（与新增行的「空就是没填」一致）。
+- 新行追加到该表 `Items` 末尾，和其它新增一起走一次 diff、一次写盘。
 
 - 改与删可以混在一起，一次 diff、一次写盘。删行前会扫全库，把「会影响多少处引用」写进 diff 弹窗的提示区（不拦截，你自己判断）。
 - 队列按表分组，但**支持跨表一次保存**：在 Config_Task 改一行、再到 Config_CatalogItem 删一行，点一次「预览并保存」会弹出分表 diff（每张表一段，带各自字节变化），确认后逐表写盘。
@@ -298,11 +359,40 @@ cd config-studio && npm run build
 | `Esc` | 取消编辑。有引用选择器 / diff 弹窗 / 确认框 / 列编辑压在上面时，`Esc` 先关那一层 | 编辑表单里 |
 | `E` | 编辑选中行 | 只读详情、已选中一行 |
 | `Delete` | 删除选中行（进待保存队列，不直接写文件） | 只读详情、已选中一行 |
+| `Ctrl+D` | 复制选中行（进新增队列，填新行名后保存） | 只读详情、已选中一行 |
 
 `E` / `Delete` 在输入框、搜索框里打字时不会触发；行已经进删除队列后也不再触发（详情里只剩「撤销删除」）。
 
-新增行表单里同样可用：`Ctrl`/`Cmd` + `Enter` 或 `Ctrl`/`Cmd` + `S` = 加入队列，`Esc` = 取消。
+新增行 / 复制行表单里同样可用：`Ctrl`/`Cmd` + `Enter` 或 `Ctrl`/`Cmd` + `S` = 加入队列，`Esc` = 取消。
 
+## 列编辑（Excel 式批量改列）
+
+单行编辑是「把这一行改对」，列编辑是「把这一列一批行改对」——同一字段跨行逐行编辑，也能下钻到嵌套结构里的某一路径。
+
+### 两个入口
+
+- 点表格**列标题**（鼠标移上去右上角会出现一个小图标）；
+- 或选中一张表后按 `C`，默认打开第一个非 RowName 字段。
+
+### 面板里能做什么
+
+| 区域 | 作用 |
+|---|---|
+| 字段 / 路径 | 先选顶层字段，再从路径下拉里下钻（`Rewards › [*] › RequiredValue`）；数组层写成 `[*]`，会按该层实际下标展开成多列（`#1`、`#2`…），可以连续下钻多层 |
+| 执行器分组 | 路径下拉按**执行器类型**分组（`AddCatalogItem · 发放物品`、`UpdateGuide · 修改某一个新手引导的状态`…），只列这个执行器有的参数，不会把不同执行器的同名参数混成一列 |
+| 整条（参数成组） | 选执行器名那一项 → 变成**两级表头**：`#1 / #2 / #3` 每组列 = 一次调用，组内是 `物品行RowName | 数量`。同一组的参数一起改才有意义 |
+| 作用域条 | 常驻显示「执行器 X · 中文名 · 参数 Y · 引用 → 目标表」，并说明只影响 `Name = X` 的元素、同行其它执行器不受影响 |
+| 按属性筛选 | 面板内也能按行属性（`@` 前缀）或展开列（`#1 数量`）筛行，可叠加，只作用于筛出的行 |
+| 筛行名 / 只看有值 | 快速缩小到关心的行；「只看有值」筛掉该列为空的行 |
+| 整列设为 / 设为 / 步长 + 递增 | 对单列批量赋值；`递增` 按步长从首行往下填。**只作用于当前筛出的行** |
+| 预览并保存 | 和单行编辑同一套：先看 diff，再写盘，自动备份，可撤销 |
+
+细节：
+
+- 单元格直接改也行，改过的格子会高亮；底部实时显示「已改 N 格（筛出 X / 全表 M 行）」。
+- 值类型按字段元数据保证：引用字段即使填了纯数字也写成字符串，不会把 JSON 写成数字导致反序列化失败。
+- 面板关掉时若还有未保存的格，会先弹确认；`Esc` 也能关（有改动同样先确认）。
+- 改的是**原值**不是「未保存的编辑」：`数量 > 2000` 筛出来整列设为 0 之后，行不会当场消失，你能核对改了什么。
 ## Git 面板（仅桌面版）
 
 打开的那个目录如果落在 git 仓库里（往上找 `git rev-parse --show-toplevel` 能找到），顶栏右上角会出现一个分支图标按钮，title 会写成 `Git · <当前分支> · N 个变更`。点开从右侧滑出面板：
@@ -311,7 +401,8 @@ cd config-studio && npm run build
 |---|---|
 | 顶部 | 仓库路径、当前分支（点开是分支列表）、与上游的 `↑N` / `↓N`、远端地址 |
 | 按钮 | 拉取（`git pull --ff-only`）、推送（`git push`）、刷新 |
-| 变更 | 每个改动文件一行（状态标签 + 路径） |
+| 变更 | 每个改动文件一行（勾选框 + 状态标签 + 路径），顶部有「全选」与「已选 N / M」 |
+| 提交 | 变更列表下方的多行输入框 + 提交按钮（Ctrl / Cmd + Enter 也可提交）；只提交勾选的文件，**不会自动推送** |
 | 文件 diff | 点变更文件，**在抽屉左侧弹出宽面板**（最多 1100px），逐行染色显示增删；↑ / ↓ 在变更文件之间切换，Esc 先关 diff、再关抽屉 |
 | 新增文件 | 未跟踪的文件也能看：显示成「── 新增文件 ──」+ 完整内容（内部用 `git diff --no-index -- /dev/null <文件>` 比出来） |
 | 历史 | 最近 60 条提交（短 hash、作者、时间、说明） |
@@ -320,13 +411,14 @@ cd config-studio && npm run build
 - 所有 git 调用都带 `CREATE_NO_WINDOW`，所以你不会在屏幕上看到一闪一闪的命令行黑框。
 
 - 切分支：点当前分支 → 搜索框 + 本地/远程分组列表，当前分支标「当前」。选远程分支时会自动 `checkout -b <名> --track <远程>` 建跟踪分支。
-- 工具**只做**拉取、推送、切分支这三件基本操作。不做 merge / rebase / reset / 提交 / 强制推送——合并冲突、历史改写这类事请回命令行。
+- 工具只做**拉取 / 推送 / 切分支 / 提交**这四件事。不做 merge / rebase / reset / 强制推送——合并冲突、历史改写这类事请回命令行。
+- 提交只作用于勾选的文件：先 `git add -A -- <勾选路径>`，再 `git commit -m <信息> -- <勾选路径>`。带 pathspec 的 commit 会忽略 index 里其它文件，不会把别人暂存过的内容一起带走。提交完仍需自己点推送。
 - 拉取用 `--ff-only`：本地有分叉时直接报错并显示 git 的原始输出，不会偷偷生成 merge commit。
 - 浏览器版（`启动.bat`）没有这个按钮：它拿不到 shell 权限。
 
 ## 数据安全
 
-- 服务端只做三件事：返回配置原文、写入配置原文、备份/撤销。**JSON 解析、编辑、校验、diff 全在浏览器里**。
+- 浏览器版的服务端只做三件事：返回配置原文、写入配置原文、备份 / 撤销。**JSON 解析、编辑、校验、diff 全在前端**；桌面版换成 Rust 命令做同样的事（另加 git 操作与目录记忆），前端代码是同一份。
 - 每次写入前先备份到 `dist/backups/<UTC时间戳>--Config_X.json`（保留全部历史）。
 - 写入用临时文件 + 原子替换，中途失败不会留下半个文件。
 - 编辑只替换被改动字段的字节区间，文件的缩进、换行、BOM 保持原样。

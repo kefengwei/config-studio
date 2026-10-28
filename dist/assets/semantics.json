@@ -1,14 +1,15 @@
 {
- "generatedAt": "2026-10-28T07:21:13.972Z",
+ "generatedAt": "2026-10-28T09:21:41.496Z",
  "source": {
   "configDir": "configs",
   "schemaDir": "json-schemas",
   "csharpDir": "G:/Github/DoriDori.Backend/src/DoriDori.Backend.Config"
  },
  "stats": {
-  "tables": 96,
+  "tables": 95,
   "rows": 7565,
-  "actuators": 176,
+  "actuators": 52,
+  "polyEntries": 127,
   "refFields": 60,
   "enums": 35,
   "enumsWithChinese": 28
@@ -980,18 +981,21 @@
  "actuators": {
   "ExtraActionDefine_AFKRewardOutput": {
    "name": "ExtraActionDefine_AFKRewardOutput",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "离线产出奖励 - (此事件不会主动触发, 或者说)",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "ExtraActionDefine_BattleFailed": {
    "name": "ExtraActionDefine_BattleFailed",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "ExtraActionDefine_BattleFailed",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "ExtraActionDefine_BattleFailed_LevelDefine": {
    "name": "ExtraActionDefine_BattleFailed_LevelDefine",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "ExtraActionDefine_BattleFailed_LevelDefine",
    "params": {
     "LevelDefine": {
@@ -1004,12 +1008,14 @@
   },
   "ExtraActionDefine_BattleSuccess": {
    "name": "ExtraActionDefine_BattleSuccess",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "ExtraActionDefine_BattleSuccess",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "ExtraActionDefine_BattleSuccess_LevelDefine": {
    "name": "ExtraActionDefine_BattleSuccess_LevelDefine",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "ExtraActionDefine_BattleSuccess_LevelDefine",
    "params": {
     "LevelDefine": {
@@ -1022,6 +1028,7 @@
   },
   "ExtraActionDefine_FirstPassLevelOrder": {
    "name": "ExtraActionDefine_FirstPassLevelOrder",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "首次通关 - 关卡定义",
    "params": {
     "LevelDefine": {
@@ -1036,6 +1043,7 @@
   },
   "ExtraActionDefine_FirstPassLevelOrder_Order": {
    "name": "ExtraActionDefine_FirstPassLevelOrder_Order",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "首次通关 - 关卡定义 - Order",
    "params": {
     "LevelDefine": {
@@ -1053,12 +1061,14 @@
   },
   "ExtraActionDefine_FirstReachArenaRank": {
    "name": "ExtraActionDefine_FirstReachArenaRank",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "竞技场首次达到新段位",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "ExtraActionDefine_FirstReachArenaRank_Rank": {
    "name": "ExtraActionDefine_FirstReachArenaRank_Rank",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "竞技场首次达到新段位 - 段位",
    "params": {
     "Rank": {
@@ -1071,12 +1081,14 @@
   },
   "ExtraActionDefine_LevelSweep": {
    "name": "ExtraActionDefine_LevelSweep",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "关卡扫荡",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "ExtraActionDefine_LevelSweep_LevelDefine": {
    "name": "ExtraActionDefine_LevelSweep_LevelDefine",
+   "base": "ExtraActionDefineInstanceData",
    "desc": "关卡扫荡_指定关卡定义",
    "params": {
     "LevelDefine": {
@@ -1089,6 +1101,7 @@
   },
   "RedeemShopItem": {
    "name": "RedeemShopItem",
+   "base": "ActuatorInstanceData",
    "desc": "兑换商店物品执行器, 用于在Product中匹配商店物品",
    "params": {
     "ShopItemRowName": {
@@ -1101,6 +1114,7 @@
   },
   "ActivatePrivilegeCard": {
    "name": "ActivatePrivilegeCard",
+   "base": "ActuatorInstanceData",
    "desc": "激活权限卡执行器",
    "params": {
     "PrivilegeCard": {
@@ -1113,6 +1127,7 @@
   },
   "ActivateSpiritPet": {
    "name": "ActivateSpiritPet",
+   "base": "ActuatorInstanceData",
    "desc": "激活灵宠执行器, 给玩家添加一只灵宠",
    "params": {
     "RowName": {
@@ -1125,6 +1140,7 @@
   },
   "ActivateTask": {
    "name": "ActivateTask",
+   "base": "ActuatorInstanceData",
    "desc": "激活任务执行器",
    "params": {
     "TaskRowName": {
@@ -1139,6 +1155,7 @@
   },
   "AddAFKRewardDurationExpandFactor": {
    "name": "AddAFKRewardDurationExpandFactor",
+   "base": "ActuatorInstanceData",
    "desc": "增加离线奖励限制时间扩展倍率执行器",
    "params": {
     "ExpandFactor": {
@@ -1151,6 +1168,7 @@
   },
   "AddBuildingOutputFactor": {
    "name": "AddBuildingOutputFactor",
+   "base": "ActuatorInstanceData",
    "desc": "增加建筑产出因子",
    "params": {
     "BuildingRowName": {
@@ -1168,6 +1186,7 @@
   },
   "AddBuildingStageDurationFactor": {
    "name": "AddBuildingStageDurationFactor",
+   "base": "ActuatorInstanceData",
    "desc": "增加建筑阶段持续时间因子",
    "params": {
     "BuildingRowName": {
@@ -1190,6 +1209,7 @@
   },
   "AddCatalogItemIncreaseAmountRate": {
    "name": "AddCatalogItemIncreaseAmountRate",
+   "base": "ActuatorInstanceData",
    "desc": "增加获得物品数量时的额外倍率",
    "params": {
     "ItemRowName": {
@@ -1207,6 +1227,7 @@
   },
   "AddCatalogItemMaxResetAmount": {
    "name": "AddCatalogItemMaxResetAmount",
+   "base": "ActuatorInstanceData",
    "desc": "AddCatalogItemMaxResetAmount",
    "params": {
     "ItemRowName": {
@@ -1226,6 +1247,7 @@
   },
   "AddCatalogItem": {
    "name": "AddCatalogItem",
+   "base": "ActuatorInstanceData",
    "desc": "Add catalog item",
    "params": {
     "RowName": {
@@ -1245,6 +1267,7 @@
   },
   "AddCatalogItemRecoveryAdditionRate": {
    "name": "AddCatalogItemRecoveryAdditionRate",
+   "base": "ActuatorInstanceData",
    "desc": "增加物品的恢复额外增加率",
    "params": {
     "ItemRowName": {
@@ -1262,6 +1285,7 @@
   },
   "AddClientActuator": {
    "name": "AddClientActuator",
+   "base": "ActuatorInstanceData",
    "desc": "Add a client actuator to the player",
    "params": {
     "RowName": {
@@ -1274,6 +1298,7 @@
   },
   "AddEngagementValue": {
    "name": "AddEngagementValue",
+   "base": "ActuatorInstanceData",
    "desc": "增加用户参与度值",
    "params": {
     "Name": {
@@ -1291,6 +1316,7 @@
   },
   "AddEquipment": {
    "name": "AddEquipment",
+   "base": "ActuatorInstanceData",
    "desc": "添加装备",
    "params": {
     "EquipmentRowName": {
@@ -1326,6 +1352,7 @@
   },
   "AddGameGlobalProgress": {
    "name": "AddGameGlobalProgress",
+   "base": "ActuatorInstanceData",
    "desc": "AddGameGlobalProgress",
    "params": {
     "RowName": {
@@ -1338,6 +1365,7 @@
   },
   "AddGameMergeChessItem": {
    "name": "AddGameMergeChessItem",
+   "base": "ActuatorInstanceData",
    "desc": "添加棋子",
    "params": {
     "ItemRowName": {
@@ -1360,6 +1388,7 @@
   },
   "AddGuildContribution": {
    "name": "AddGuildContribution",
+   "base": "ActuatorInstanceData",
    "desc": "增加公会贡献值（道具货币 + 周贡献拆分同步）",
    "params": {
     "Amount": {
@@ -1377,6 +1406,7 @@
   },
   "AddGuildDonateTimes": {
    "name": "AddGuildDonateTimes",
+   "base": "ActuatorInstanceData",
    "desc": "增加公会每日捐献次数",
    "params": {
     "Count": {
@@ -1389,6 +1419,7 @@
   },
   "AddGuildExp": {
    "name": "AddGuildExp",
+   "base": "ActuatorInstanceData",
    "desc": "增加公会经验（含自动升级）",
    "params": {
     "Amount": {
@@ -1401,6 +1432,7 @@
   },
   "AddMessageRecord": {
    "name": "AddMessageRecord",
+   "base": "ActuatorInstanceData",
    "desc": "添加消息记录",
    "params": {
     "MessageId": {
@@ -1439,6 +1471,7 @@
   },
   "AddPlayerAttribute": {
    "name": "AddPlayerAttribute",
+   "base": "ActuatorInstanceData",
    "desc": "为玩家添加属性",
    "params": {
     "Attribute": {
@@ -1456,6 +1489,7 @@
   },
   "AddRecharge": {
    "name": "AddRecharge",
+   "base": "ActuatorInstanceData",
    "desc": "增加充值记录",
    "params": {
     "PriceTier": {
@@ -1473,6 +1507,7 @@
   },
   "AddSecondaryCharacterSlotNum": {
    "name": "AddSecondaryCharacterSlotNum",
+   "base": "ActuatorInstanceData",
    "desc": "增加可用辅战槽位",
    "params": {
     "UnlockNum": {
@@ -1485,6 +1520,7 @@
   },
   "BuyGameRoleGiftPack": {
    "name": "BuyGameRoleGiftPack",
+   "base": "ActuatorInstanceData",
    "desc": "购买角色礼包执行器",
    "params": {
     "RowName": {
@@ -1502,6 +1538,7 @@
   },
   "BuyGiftPack": {
    "name": "BuyGiftPack",
+   "base": "ActuatorInstanceData",
    "desc": "购买礼包执行器",
    "params": {
     "GiftPack": {
@@ -1514,6 +1551,7 @@
   },
   "UseControlledActuator": {
    "name": "UseControlledActuator",
+   "base": "ActuatorInstanceData",
    "desc": "执行受控的执行器配置",
    "params": {
     "RowName": {
@@ -1528,6 +1566,7 @@
   },
   "EnableStatistic": {
    "name": "EnableStatistic",
+   "base": "ActuatorInstanceData",
    "desc": "启用/禁用指定统计",
    "params": {
     "StatisticRowName": {
@@ -1545,6 +1584,7 @@
   },
   "ForceAddStatisticValue": {
    "name": "ForceAddStatisticValue",
+   "base": "ActuatorInstanceData",
    "desc": "为指定的Statistic增加/减少值",
    "params": {
     "StatisticRowName": {
@@ -1564,6 +1604,7 @@
   },
   "ForceUpdateStatisticValue": {
    "name": "ForceUpdateStatisticValue",
+   "base": "ActuatorInstanceData",
    "desc": "ForceUpdateStatisticValue",
    "params": {
     "StatisticRowName": {
@@ -1581,6 +1622,7 @@
   },
   "GenerateGem": {
    "name": "GenerateGem",
+   "base": "ActuatorInstanceData",
    "desc": "生成宝石执行器",
    "params": {
     "TypeTag": {
@@ -1620,12 +1662,14 @@
   },
   "PermanentLeaderboardCrossGroup": {
    "name": "PermanentLeaderboardCrossGroup",
+   "base": "ActuatorInstanceData",
    "desc": "常驻排行榜跨服业务",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "PityGacha": {
    "name": "PityGacha",
+   "base": "ActuatorInstanceData",
    "desc": "Pity Gacha",
    "params": {
     "RowName": {
@@ -1640,6 +1684,7 @@
   },
   "RedeemTestToken": {
    "name": "RedeemTestToken",
+   "base": "ActuatorInstanceData",
    "desc": "兑换测试钻石订单执行器",
    "params": {
     "OrderId": {
@@ -1652,6 +1697,7 @@
   },
   "ReduceCatalogItemRecoveryIntervalRate": {
    "name": "ReduceCatalogItemRecoveryIntervalRate",
+   "base": "ActuatorInstanceData",
    "desc": "减少物品的恢复间隔率",
    "params": {
     "ItemRowName": {
@@ -1669,6 +1715,7 @@
   },
   "ResetTask": {
    "name": "ResetTask",
+   "base": "ActuatorInstanceData",
    "desc": "重置任务",
    "params": {
     "TaskRowName": {
@@ -1681,6 +1728,7 @@
   },
   "SetArenaPoints": {
    "name": "SetArenaPoints",
+   "base": "ActuatorInstanceData",
    "desc": "设置竞技场积分",
    "params": {
     "Points": {
@@ -1693,18 +1741,21 @@
   },
   "TempTest": {
    "name": "TempTest",
+   "base": "ActuatorInstanceData",
    "desc": "仅用于开发测试",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "UnlockFreePlan": {
    "name": "UnlockFreePlan",
+   "base": "ActuatorInstanceData",
    "desc": "解锁免费的方案数量(包括编队方案数量, 装备方案数量, 宝石方案数量)",
    "params": {},
    "definedIn": "Config_Activity"
   },
   "UnlockGameFeature": {
    "name": "UnlockGameFeature",
+   "base": "ActuatorInstanceData",
    "desc": "给玩家添加一个解锁的功能",
    "params": {
     "RowName": {
@@ -1719,6 +1770,7 @@
   },
   "UnLockLevel": {
    "name": "UnLockLevel",
+   "base": "ActuatorInstanceData",
    "desc": "解锁某一个类型的关卡",
    "params": {
     "LevelDefineName": {
@@ -1731,6 +1783,7 @@
   },
   "UnlockPlayerBuilding": {
    "name": "UnlockPlayerBuilding",
+   "base": "ActuatorInstanceData",
    "desc": "解锁玩家建筑",
    "params": {
     "BuildingRowName": {
@@ -1745,6 +1798,7 @@
   },
   "UnlockPlayerCustom": {
    "name": "UnlockPlayerCustom",
+   "base": "ActuatorInstanceData",
    "desc": "解锁玩家自定义",
    "params": {
     "RowName": {
@@ -1759,6 +1813,7 @@
   },
   "UnlockPlayerCustomByStartTime": {
    "name": "UnlockPlayerCustomByStartTime",
+   "base": "ActuatorInstanceData",
    "desc": "以指定的开始时间Key去解锁一个PlayerCustom",
    "params": {
     "RowName": {
@@ -1786,6 +1841,7 @@
   },
   "UnlockWeaponOrSkill": {
    "name": "UnlockWeaponOrSkill",
+   "base": "ActuatorInstanceData",
    "desc": "解锁玩家武器或技能",
    "params": {
     "RowNames": {
@@ -1798,6 +1854,7 @@
   },
   "UpdateActuatorModifyValue": {
    "name": "UpdateActuatorModifyValue",
+   "base": "ActuatorInstanceData",
    "desc": "添加执行器执行效果倍率。只有特定的执行器才会生效",
    "params": {
     "Name": {
@@ -1822,6 +1879,7 @@
   },
   "UpdateEquipmentLevelLimit": {
    "name": "UpdateEquipmentLevelLimit",
+   "base": "ActuatorInstanceData",
    "desc": "更新装备等级上限",
    "params": {
     "Category": {
@@ -1839,6 +1897,7 @@
   },
   "UpdateGuide": {
    "name": "UpdateGuide",
+   "base": "ActuatorInstanceData",
    "desc": "修改某一个新手引导的状态",
    "params": {
     "GuideRowName": {
@@ -1858,6 +1917,7 @@
   },
   "UpdateLevelOrder": {
    "name": "UpdateLevelOrder",
+   "base": "ActuatorInstanceData",
    "desc": "更新关卡的进度",
    "params": {
     "LevelDefineName": {
@@ -1875,6 +1935,7 @@
   },
   "UpdatePlayerTimeOffset": {
    "name": "UpdatePlayerTimeOffset",
+   "base": "ActuatorInstanceData",
    "desc": "更新玩家时间偏移",
    "params": {
     "OffsetHours": {
@@ -1887,6 +1948,7 @@
   },
   "UpdateTalentStageLimit": {
    "name": "UpdateTalentStageLimit",
+   "base": "ActuatorInstanceData",
    "desc": "更新天赋阶段限制",
    "params": {
     "Limit": {
@@ -1899,6 +1961,7 @@
   },
   "UpgradeTalentToStage": {
    "name": "UpgradeTalentToStage",
+   "base": "ActuatorInstanceData",
    "desc": "升级天赋到指定阶段",
    "params": {
     "Stage": {
@@ -1911,6 +1974,7 @@
   },
   "WeightRandom": {
    "name": "WeightRandom",
+   "base": "ActuatorInstanceData",
    "desc": "在Config_RandomActuator中配置的权重随机执行器",
    "params": {
     "RowName": {
@@ -1923,12 +1987,14 @@
   },
   "ArenaRank": {
    "name": "ArenaRank",
+   "base": "ProgressTrackerInstanceData",
    "desc": "竞技场段位",
    "params": {},
    "definedIn": "Config_Condition"
   },
   "GuildBossRank": {
    "name": "GuildBossRank",
+   "base": "ProgressTrackerInstanceData",
    "desc": "World boss weekly personal rank as percentage (0~100)",
    "params": {
     "RankStatisticRowName": {
@@ -1951,18 +2017,21 @@
   },
   "GuildLevel": {
    "name": "GuildLevel",
+   "base": "ProgressTrackerInstanceData",
    "desc": "Player's guild level (0 when not in a guild)",
    "params": {},
    "definedIn": "Config_Condition"
   },
   "GuildMember": {
    "name": "GuildMember",
+   "base": "ProgressTrackerInstanceData",
    "desc": "Player is a guild member (1 = yes, 0 = no)",
    "params": {},
    "definedIn": "Config_Condition"
   },
   "InventoryItem": {
    "name": "InventoryItem",
+   "base": "ProgressTrackerInstanceData",
    "desc": "背包中某个物品的当前数量",
    "params": {
     "ItemId": {
@@ -1975,6 +2044,7 @@
   },
   "RechargeAmount": {
    "name": "RechargeAmount",
+   "base": "ProgressTrackerInstanceData",
    "desc": "最近 N 天累计充值金额(按档位标准价, 币种取 Config_Global.FallbackCurrency)",
    "params": {
     "Days": {
@@ -1987,12 +2057,14 @@
   },
   "ServerUptime": {
    "name": "ServerUptime",
+   "base": "ProgressTrackerInstanceData",
    "desc": "Server Uptime",
    "params": {},
    "definedIn": "Config_Condition"
   },
   "Statistic": {
    "name": "Statistic",
+   "base": "ProgressTrackerInstanceData",
    "desc": "Statistic Progress",
    "params": {
     "StatisticRowName": {
@@ -2007,6 +2079,7 @@
   },
   "TimeControlTurn": {
    "name": "TimeControlTurn",
+   "base": "ProgressTrackerInstanceData",
    "desc": "Time Control Turn",
    "params": {
     "TimeControlRowName": {
@@ -2019,24 +2092,28 @@
   },
   "StatisticDefineArenaPoints": {
    "name": "StatisticDefineArenaPoints",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineArenaPoints",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineArenaRank": {
    "name": "StatisticDefineArenaRank",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineArenaRank",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_TotalDamage": {
    "name": "StatisticDefineBattleStatistic_TotalDamage",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 总伤害 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_TotalDamage_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_TotalDamage_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 总伤害 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2049,12 +2126,14 @@
   },
   "StatisticDefineBattleStatistic_PlayerLevel": {
    "name": "StatisticDefineBattleStatistic_PlayerLevel",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 玩家等级 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_PlayerLevel_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_PlayerLevel_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 玩家等级 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2067,12 +2146,14 @@
   },
   "StatisticDefineBattleStatistic_SkillCount": {
    "name": "StatisticDefineBattleStatistic_SkillCount",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 技能数量 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_SkillCount_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_SkillCount_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 技能数量 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2085,12 +2166,14 @@
   },
   "StatisticDefineBattleStatistic_WeaponCount": {
    "name": "StatisticDefineBattleStatistic_WeaponCount",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 武器数量 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_WeaponCount_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_WeaponCount_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 武器数量 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2103,12 +2186,14 @@
   },
   "StatisticDefineBattleStatistic_SurviveTime": {
    "name": "StatisticDefineBattleStatistic_SurviveTime",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 存活时间 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_SurviveTime_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_SurviveTime_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - 存活时间 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2121,12 +2206,14 @@
   },
   "StatisticDefineBattleStatistic_KillBossTime": {
    "name": "StatisticDefineBattleStatistic_KillBossTime",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - Boss击杀时间 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBattleStatistic_KillBossTime_LevelDefine": {
    "name": "StatisticDefineBattleStatistic_KillBossTime_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡战斗统计 - Boss击杀时间 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2139,12 +2226,14 @@
   },
   "StatisticDefineBlackShopBuy": {
    "name": "StatisticDefineBlackShopBuy",
+   "base": "StatisticDefineInstanceData",
    "desc": "黑市购买 - 任意",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBlackShopBuy_RowName": {
    "name": "StatisticDefineBlackShopBuy_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "黑市购买 - 指定物品",
    "params": {
     "RowName": {
@@ -2157,12 +2246,14 @@
   },
   "StatisticDefineBossTop2TotalDamage": {
    "name": "StatisticDefineBossTop2TotalDamage",
+   "base": "StatisticDefineInstanceData",
    "desc": "Boss挑战Top2总伤害",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineBossTop2TotalDamage_LevelDefine": {
    "name": "StatisticDefineBossTop2TotalDamage_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "Boss挑战Top2总伤害 - 指定关卡定义",
    "params": {
     "LevelDefine": {
@@ -2175,12 +2266,14 @@
   },
   "StatisticDefineCatalogItemCost": {
    "name": "StatisticDefineCatalogItemCost",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品消耗 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineCatalogItemCost_RowName": {
    "name": "StatisticDefineCatalogItemCost_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品消耗 - 指定物品",
    "params": {
     "RowName": {
@@ -2195,6 +2288,7 @@
   },
   "StatisticDefineCatalogItemCost_Tag": {
    "name": "StatisticDefineCatalogItemCost_Tag",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品消耗 - 指定Tag",
    "params": {
     "Tag": {
@@ -2207,12 +2301,14 @@
   },
   "StatisticDefineCatalogItemCumulative": {
    "name": "StatisticDefineCatalogItemCumulative",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品累计 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineCatalogItemCumulative_RowName": {
    "name": "StatisticDefineCatalogItemCumulative_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品累计 - 指定物品",
    "params": {
     "RowName": {
@@ -2227,6 +2323,7 @@
   },
   "StatisticDefineCatalogItemCumulative_Tag": {
    "name": "StatisticDefineCatalogItemCumulative_Tag",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品累计 - Tag",
    "params": {
     "Tag": {
@@ -2239,12 +2336,14 @@
   },
   "StatisticDefineCatalogItemPaidCumulative": {
    "name": "StatisticDefineCatalogItemPaidCumulative",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品付费资产累计获得 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineCatalogItemPaidCumulative_RowName": {
    "name": "StatisticDefineCatalogItemPaidCumulative_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品付费资产累计获得 - 指定物品",
    "params": {
     "RowName": {
@@ -2257,6 +2356,7 @@
   },
   "StatisticDefineCatalogItemPaidCumulative_Tag": {
    "name": "StatisticDefineCatalogItemPaidCumulative_Tag",
+   "base": "StatisticDefineInstanceData",
    "desc": "背包物品付费资产累计获得 - Tag",
    "params": {
     "Tag": {
@@ -2269,12 +2369,14 @@
   },
   "StatisticDefineClaimBuildingOutput": {
    "name": "StatisticDefineClaimBuildingOutput",
+   "base": "StatisticDefineInstanceData",
    "desc": "家园设施领取 - 任意",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineClaimBuildingOutput_RowName": {
    "name": "StatisticDefineClaimBuildingOutput_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "家园设置领取 - 指设施",
    "params": {
     "RowName": {
@@ -2287,30 +2389,35 @@
   },
   "StatisticDefineCombatPower": {
    "name": "StatisticDefineCombatPower",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineCombatPower",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineDailyBargain": {
    "name": "StatisticDefineDailyBargain",
+   "base": "StatisticDefineInstanceData",
    "desc": "进行一次每日砍价",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineDailyBargainBuy": {
    "name": "StatisticDefineDailyBargainBuy",
+   "base": "StatisticDefineInstanceData",
    "desc": "购买每日砍价商品",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineDailyRechargeTaskAchieved": {
    "name": "StatisticDefineDailyRechargeTaskAchieved",
+   "base": "StatisticDefineInstanceData",
    "desc": "每日充值达成",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineDailyRechargeTaskAchieved_RowName": {
    "name": "StatisticDefineDailyRechargeTaskAchieved_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "每日充值达成",
    "params": {
     "RowName": {
@@ -2323,12 +2430,14 @@
   },
   "StatisticDefineEquipmentAdd": {
    "name": "StatisticDefineEquipmentAdd",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentAdd_RowName": {
    "name": "StatisticDefineEquipmentAdd_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - RowName",
    "params": {
     "RowName": {
@@ -2343,6 +2452,7 @@
   },
   "StatisticDefineEquipmentAdd_Type": {
    "name": "StatisticDefineEquipmentAdd_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - Type",
    "params": {
     "Type": {
@@ -2355,6 +2465,7 @@
   },
   "StatisticDefineEquipmentAdd_Grade": {
    "name": "StatisticDefineEquipmentAdd_Grade",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - Grade",
    "params": {
     "Grade": {
@@ -2367,12 +2478,14 @@
   },
   "StatisticDefineEquipmentAdd_Super": {
    "name": "StatisticDefineEquipmentAdd_Super",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - S装备",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentAdd_Super_Type": {
    "name": "StatisticDefineEquipmentAdd_Super_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备获得 - S装备",
    "params": {
     "Type": {
@@ -2385,12 +2498,14 @@
   },
   "StatisticDefineEquipmentBreakThrough": {
    "name": "StatisticDefineEquipmentBreakThrough",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备突破 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentBreakThrough_RowName": {
    "name": "StatisticDefineEquipmentBreakThrough_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备突破 - RowName",
    "params": {
     "RowName": {
@@ -2403,6 +2518,7 @@
   },
   "StatisticDefineEquipmentBreakThrough_Type": {
    "name": "StatisticDefineEquipmentBreakThrough_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备突破 - 类型",
    "params": {
     "Type": {
@@ -2415,12 +2531,14 @@
   },
   "StatisticDefineEquipmentMerge": {
    "name": "StatisticDefineEquipmentMerge",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentMerge_RowName": {
    "name": "StatisticDefineEquipmentMerge_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成 - RowName",
    "params": {
     "RowName": {
@@ -2433,6 +2551,7 @@
   },
   "StatisticDefineEquipmentMerge_Type": {
    "name": "StatisticDefineEquipmentMerge_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成 - 类型",
    "params": {
     "Type": {
@@ -2445,12 +2564,14 @@
   },
   "StatisticDefineEquipmentMergeToGrade": {
    "name": "StatisticDefineEquipmentMergeToGrade",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentMergeToGrade_RowName": {
    "name": "StatisticDefineEquipmentMergeToGrade_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - RowName",
    "params": {
     "RowName": {
@@ -2465,6 +2586,7 @@
   },
   "StatisticDefineEquipmentMergeToGrade_Type": {
    "name": "StatisticDefineEquipmentMergeToGrade_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - RowName",
    "params": {
     "Type": {
@@ -2477,12 +2599,14 @@
   },
   "StatisticDefineEquipmentUpgrade": {
    "name": "StatisticDefineEquipmentUpgrade",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级 - [不限]",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentUpgradeType": {
    "name": "StatisticDefineEquipmentUpgradeType",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级 - [类型]",
    "params": {
     "Type": {
@@ -2495,6 +2619,7 @@
   },
   "StatisticDefineEquipmentUpgradeRowName": {
    "name": "StatisticDefineEquipmentUpgradeRowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级 - [行(RowName))]",
    "params": {
     "RowName": {
@@ -2507,12 +2632,14 @@
   },
   "StatisticDefineEquipmentUpgradeToLevel": {
    "name": "StatisticDefineEquipmentUpgradeToLevel",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级特定顶级 - [不限]",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineEquipmentUpgradeToLevelType": {
    "name": "StatisticDefineEquipmentUpgradeToLevelType",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级特定顶级 - [类型](EquipmentType)",
    "params": {
     "Type": {
@@ -2525,6 +2652,7 @@
   },
   "StatisticDefineEquipmentUpgradeToLevelRowName": {
    "name": "StatisticDefineEquipmentUpgradeToLevelRowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备升级特定顶级 - [行(RowName)]",
    "params": {
     "RowName": {
@@ -2539,12 +2667,14 @@
   },
   "StatisticDefineGemAdd": {
    "name": "StatisticDefineGemAdd",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石新增 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGemAdd_TypeTag": {
    "name": "StatisticDefineGemAdd_TypeTag",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石新增 - 指定类型",
    "params": {
     "TypeTag": {
@@ -2559,6 +2689,7 @@
   },
   "StatisticDefineGemAdd_Grade": {
    "name": "StatisticDefineGemAdd_Grade",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石新增 - 指定等级",
    "params": {
     "Grade": {
@@ -2571,12 +2702,14 @@
   },
   "StatisticDefineGemDraw": {
    "name": "StatisticDefineGemDraw",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石纹章抽取 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGemDraw_RowName": {
    "name": "StatisticDefineGemDraw_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石纹章抽取 - 指定抽取行",
    "params": {
     "DrawRowName": {
@@ -2589,6 +2722,7 @@
   },
   "StatisticDefineGemDraw_Advanced": {
    "name": "StatisticDefineGemDraw_Advanced",
+   "base": "StatisticDefineInstanceData",
    "desc": "宝石纹章抽取 - 是否高级",
    "params": {
     "IsAdvanced": {
@@ -2599,20 +2733,56 @@
    },
    "definedIn": "Config_Statistic"
   },
+  "StatisticDefineGemMerge": {
+   "name": "StatisticDefineGemMerge",
+   "base": "StatisticDefineInstanceData",
+   "desc": "宝石合成 - 不限",
+   "params": {},
+   "definedIn": "Config_Statistic"
+  },
+  "StatisticDefineGemMerge_TypeTag": {
+   "name": "StatisticDefineGemMerge_TypeTag",
+   "base": "StatisticDefineInstanceData",
+   "desc": "宝石合成 - 指定类型",
+   "params": {
+    "TypeTag": {
+     "type": "string",
+     "desc": "",
+     "target": null
+    }
+   },
+   "definedIn": "Config_Statistic"
+  },
+  "StatisticDefineGemMerge_Grade": {
+   "name": "StatisticDefineGemMerge_Grade",
+   "base": "StatisticDefineInstanceData",
+   "desc": "宝石合成 - 指定等级",
+   "params": {
+    "Grade": {
+     "type": "integer",
+     "desc": "",
+     "target": null
+    }
+   },
+   "definedIn": "Config_Statistic"
+  },
   "StatisticDefineGemRefreshNum": {
    "name": "StatisticDefineGemRefreshNum",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineGemRefreshNum",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGiftPackBuy": {
    "name": "StatisticDefineGiftPackBuy",
+   "base": "StatisticDefineInstanceData",
    "desc": "礼包购买次数 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGiftPackBuy_GiftPack": {
    "name": "StatisticDefineGiftPackBuy_GiftPack",
+   "base": "StatisticDefineInstanceData",
    "desc": "礼包购买次数 - 指定礼包",
    "params": {
     "GiftPack": {
@@ -2625,18 +2795,21 @@
   },
   "StatisticDefineGuildBossChallenge": {
    "name": "StatisticDefineGuildBossChallenge",
+   "base": "StatisticDefineInstanceData",
    "desc": "挑战公会BOSS 次数",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGuildDonate": {
    "name": "StatisticDefineGuildDonate",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会捐献 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGuildDonate_Tier": {
    "name": "StatisticDefineGuildDonate_Tier",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会捐献 - 指定档位",
    "params": {
     "Tier": {
@@ -2649,18 +2822,21 @@
   },
   "StatisticDefineGuildExp": {
    "name": "StatisticDefineGuildExp",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会累计获得经验",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGuildShopBuy": {
    "name": "StatisticDefineGuildShopBuy",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会商店购买 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineGuildShopBuy_ShopTag": {
    "name": "StatisticDefineGuildShopBuy_ShopTag",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会商店购买 - 指定商店页签",
    "params": {
     "ShopTag": {
@@ -2673,6 +2849,7 @@
   },
   "StatisticDefineGuildShopBuy_Item": {
    "name": "StatisticDefineGuildShopBuy_Item",
+   "base": "StatisticDefineInstanceData",
    "desc": "公会商店购买 - 指定商品",
    "params": {
     "ItemRowName": {
@@ -2685,12 +2862,14 @@
   },
   "StatisticDefineLevelChallengeAchieved": {
    "name": "StatisticDefineLevelChallengeAchieved",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡挑战完成 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelChallengeAchieved_LevelDefine": {
    "name": "StatisticDefineLevelChallengeAchieved_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡挑战完成 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2703,12 +2882,14 @@
   },
   "StatisticDefineLevelCompleted": {
    "name": "StatisticDefineLevelCompleted",
+   "base": "StatisticDefineInstanceData",
    "desc": "完成关卡(记录的完成关卡的Order) - 不限 - 指完成到指定Order的关卡",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelCompleted_LevelDefine": {
    "name": "StatisticDefineLevelCompleted_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "完成关卡(记录的完成关卡的Order) - 指定某个类型的关卡完成到指定Order",
    "params": {
     "LevelDefine": {
@@ -2723,6 +2904,7 @@
   },
   "StatisticDefineLevelCompleted_Times": {
    "name": "StatisticDefineLevelCompleted_Times",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineLevelCompleted_Times",
    "params": {
     "LevelDefine": {
@@ -2737,12 +2919,14 @@
   },
   "StatisticDefineLevelFailed": {
    "name": "StatisticDefineLevelFailed",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡失败(记录的是失败次数) - ",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelFailed_LevelDefine": {
    "name": "StatisticDefineLevelFailed_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡失败(记录的是失败次数) - 指定某个类型的关卡失败",
    "params": {
     "LevelDefine": {
@@ -2755,12 +2939,14 @@
   },
   "StatisticDefineLevelFirstBattle": {
    "name": "StatisticDefineLevelFirstBattle",
+   "base": "StatisticDefineInstanceData",
    "desc": "首次挑战指定关卡(记录的是关卡Order)",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelFirstBattle_LevelDefine": {
    "name": "StatisticDefineLevelFirstBattle_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "首次挑战指定关卡(记录的是关卡Order) - 关卡类型",
    "params": {
     "LevelDefine": {
@@ -2773,18 +2959,21 @@
   },
   "StatisticDefineLevelPassThrough": {
    "name": "StatisticDefineLevelPassThrough",
+   "base": "StatisticDefineInstanceData",
    "desc": "连续通关 - (仅在地牢类型关卡触发)",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelStar": {
    "name": "StatisticDefineLevelStar",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡星级 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelStar_LevelDefine": {
    "name": "StatisticDefineLevelStar_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡星级 - 指定关卡类型",
    "params": {
     "LevelDefine": {
@@ -2797,12 +2986,14 @@
   },
   "StatisticDefineLevelSweep": {
    "name": "StatisticDefineLevelSweep",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineLevelSweep",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineLevelSweep_LevelDefine": {
    "name": "StatisticDefineLevelSweep_LevelDefine",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineLevelSweep_LevelDefine",
    "params": {
     "LevelDefine": {
@@ -2815,6 +3006,7 @@
   },
   "StatisticDefineLevelTop2TotalDamage": {
    "name": "StatisticDefineLevelTop2TotalDamage",
+   "base": "StatisticDefineInstanceData",
    "desc": "关卡总伤害前两名(记录的是总伤害) - 正常来说只有Boss挑战才会有这个数据",
    "params": {
     "LevelDefine": {
@@ -2827,12 +3019,14 @@
   },
   "StatisticDefineNewEquipmentAdd": {
    "name": "StatisticDefineNewEquipmentAdd",
+   "base": "StatisticDefineInstanceData",
    "desc": "新装备获得 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineNewEquipmentAdd_Type": {
    "name": "StatisticDefineNewEquipmentAdd_Type",
+   "base": "StatisticDefineInstanceData",
    "desc": "新装备获得 - Type",
    "params": {
     "Type": {
@@ -2845,24 +3039,28 @@
   },
   "StatisticDefineOrderAmount": {
    "name": "StatisticDefineOrderAmount",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineOrderAmount",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineOrderNum": {
    "name": "StatisticDefineOrderNum",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineOrderNum",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefinePityGacha": {
    "name": "StatisticDefinePityGacha",
+   "base": "StatisticDefineInstanceData",
    "desc": "保底开箱 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefinePityGacha_RowName": {
    "name": "StatisticDefinePityGacha_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "保底开箱 - RowName",
    "params": {
     "RowName": {
@@ -2875,12 +3073,14 @@
   },
   "StatisticDefinePlayerCustomUnlock": {
    "name": "StatisticDefinePlayerCustomUnlock",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefinePlayerCustomUnlock_RowName": {
    "name": "StatisticDefinePlayerCustomUnlock_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - 不限",
    "params": {
     "RowName": {
@@ -2893,6 +3093,7 @@
   },
   "StatisticDefinePlayerCustomUnlock_Tag": {
    "name": "StatisticDefinePlayerCustomUnlock_Tag",
+   "base": "StatisticDefineInstanceData",
    "desc": "装备合成到指定品阶 - 不限",
    "params": {
     "Tag": {
@@ -2905,6 +3106,7 @@
   },
   "StatisticDefinePlayerEngagementAdded_Name": {
    "name": "StatisticDefinePlayerEngagementAdded_Name",
+   "base": "StatisticDefineInstanceData",
    "desc": "互动名称",
    "params": {
     "Name": {
@@ -2917,30 +3119,35 @@
   },
   "StatisticDefineTalentBreakThrough": {
    "name": "StatisticDefineTalentBreakThrough",
+   "base": "StatisticDefineInstanceData",
    "desc": "天赋突破",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineTalentUpgrade": {
    "name": "StatisticDefineTalentUpgrade",
+   "base": "StatisticDefineInstanceData",
    "desc": "天赋升级",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineTalentUpgrade_Level": {
    "name": "StatisticDefineTalentUpgrade_Level",
+   "base": "StatisticDefineInstanceData",
    "desc": "天赋升级到指定等级.通常这个值应当是取最大值",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineTaskCompleted": {
    "name": "StatisticDefineTaskCompleted",
+   "base": "StatisticDefineInstanceData",
    "desc": "任务完成 - 不限",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineTaskCompleted_RowName": {
    "name": "StatisticDefineTaskCompleted_RowName",
+   "base": "StatisticDefineInstanceData",
    "desc": "任务完成 - 指定任务",
    "params": {
     "RowName": {
@@ -2953,6 +3160,7 @@
   },
   "StatisticDefineTaskCompleted_Tag": {
    "name": "StatisticDefineTaskCompleted_Tag",
+   "base": "StatisticDefineInstanceData",
    "desc": "任务完成 - Tag",
    "params": {
     "Tag": {
@@ -2965,12 +3173,14 @@
   },
   "StatisticDefineTeamCharacterLevel": {
    "name": "StatisticDefineTeamCharacterLevel",
+   "base": "StatisticDefineInstanceData",
    "desc": "出站队伍角色总等级 - [不限]",
    "params": {},
    "definedIn": "Config_Statistic"
   },
   "StatisticDefineUserLogin": {
    "name": "StatisticDefineUserLogin",
+   "base": "StatisticDefineInstanceData",
    "desc": "StatisticDefineUserLogin",
    "params": {},
    "definedIn": "Config_Statistic"
@@ -5409,6 +5619,7 @@
     {
      "name": "ConsumptionActuator",
      "kind": "poly",
+     "def": "ActuatorInstanceData",
      "desc": "消耗执行器，消耗值与FixedConsumptionValue的值一样",
      "variants": 1
     },
@@ -9556,6 +9767,7 @@
     {
      "name": "ProgressTracker",
      "kind": "poly",
+     "def": "ProgressTrackerInstanceData",
      "desc": "进度追踪器",
      "variants": 1
     },
@@ -9774,16 +9986,6 @@
     "kkts-event-testing": 59
    },
    "hasSchema": true
-  },
-  "_probe": {
-   "name": "_probe",
-   "rowCount": 0,
-   "notesFilled": 0,
-   "notesRate": 0,
-   "fields": [],
-   "extraKeys": [],
-   "increments": null,
-   "hasSchema": false
   }
  }
 }

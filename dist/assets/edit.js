@@ -10,6 +10,7 @@ const EP = {
   pending: new Map(),   // 'table\u0000row' -> { table, row, patch, orig }
   refCache: new Map(),
   draft: null,
+  newBase: null,        // 新增 / 复制行时的初始值快照（编辑模式为 null）
 };
 
 const PK = (t, r) => t + '\u0000' + r;
@@ -72,6 +73,10 @@ function mountEditBar() {
     EP.editRow = null;
     renderNewRowForm(t);
   });
+
+  // 复制行：以选中行为模板，字段预填，RowName 留空
+  const copyBtn = document.getElementById('btn-copy-row');
+  if (copyBtn) copyBtn.addEventListener('click', () => copySelectedRow());
 
   // 待保存条
   const pbar = document.createElement('div');
@@ -414,11 +419,19 @@ function showMultiDiffDialog(parts, onConfirm, okText, title) {
 /* ---------------- 详情：编辑表单 ---------------- */
 const baseRenderDetail = window.renderDetail;
 
+/* 进编辑/新增态时把右栏拉宽到「中间只剩 RowName 那一列」，退出时还原。
+   宽度状态在 layout.js 里，这里只按当前模式开关。 */
+function syncEditFocus() {
+  const on = EP.detailMode === 'edit' || EP.detailMode === 'new';
+  if (window.LAYOUT && window.LAYOUT.editFocus) window.LAYOUT.editFocus(on);
+}
+
 window.renderDetail = function (row) {
   // 点了别的行（或清空选择）就退出编辑态，否则会把上一行的表单套到新行上
-  if (EP.detailMode === 'edit' && (!row || row.RowName !== EP.editRow)) { EP.detailMode = 'view'; EP.draft = null; }
+  if (EP.detailMode === 'edit' && (!row || row.RowName !== EP.editRow)) { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; }
   // 新增行没填完就去点别的行：直接放弃这份表单（它还没进队列，没有副作用）
-  if (EP.detailMode === 'new' && row) { EP.detailMode = 'view'; EP.draft = null; }
+  if (EP.detailMode === 'new' && row) { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; }
+  syncEditFocus();
   if (EP.detailMode !== 'edit' || !row) return baseRenderDetail(row);
   renderEditForm(row);
 };
@@ -485,6 +498,8 @@ function jsonCtrl(f, v) {
 
 
 function renderEditForm(row) {
+  EP.detailMode = 'edit';
+  syncEditFocus();
   const t = state.sem.tables[state.cur];
   const fields = t.fields.filter((f) => f.name !== 'RowName');
   const el = $e('#detail');
@@ -534,20 +549,27 @@ function renderEditForm(row) {
 /* ---------------- 新增行 ----------------
    和编辑同一套机制：填完先入「待保存队列」，底部「预览并保存」过 diff 才写盘。
    只把用户真填了的字段写进 JSON —— 没动的字段不出现在新行里，避免写一堆空值。 */
-function renderNewRowForm(t) {
+function renderNewRowForm(t, src) {
+  EP.detailMode = 'new';
+  syncEditFocus();
   const fields = t.fields.filter((f) => f.name !== 'RowName');
   const el = $e('#detail');
+  const from = src || null;
+  /* 复制行的基线快照：collectForm 拿它判断「哪些字段没动」，
+     没动的字段连 JSON 类型一起原样带进新行（别把 "0.75" 写成 0.75）。 */
+  EP.newBase = from ? JSON.parse(JSON.stringify(from)) : {};
 
   EP.draft = { values: {}, fields: new Set() };
 
   const rowsHtml = fields.map((f) => {
+    const init = from ? from[f.name] : undefined;
     let ctrl;
     if (typeof SE !== 'undefined' && SE.supports(f)) {
-      EP.draft.values[f.name] = SE.normalize(f, undefined);
+      EP.draft.values[f.name] = SE.normalize(f, init);
       EP.draft.fields.add(f.name);
       ctrl = SE.fieldHtml(f, EP.draft.values[f.name]);
     } else {
-      ctrl = ctrlHtml(t, f, undefined);
+      ctrl = ctrlHtml(t, f, init);
     }
     return '<div class="f-row ed-row"><div class="f-key">' + fkeyHtml(f) +
       (f.target ? '<span class="k-target">→ ' + esc(f.target) + '</span>' : '') + '</div>' +
@@ -556,19 +578,21 @@ function renderNewRowForm(t) {
       '</div>';
   }).join('');
 
-  el.innerHTML = '<div class="d-head"><div class="d-rn">新增行<span class="ed-tag">未保存</span></div>' +
-    '<div class="d-summary">' + esc(t.name) + ' · 只写入填了值的字段</div></div>' +
+  el.innerHTML = '<div class="d-head"><div class="d-rn">' + (from ? '复制自 ' + esc(from.RowName) : '新增行') +
+    '<span class="ed-tag">未保存</span></div>' +
+    '<div class="d-summary">' + esc(t.name) +
+    (from ? ' · 字段已按模板预填，填个新行名就是新的一行' : ' · 只写入填了值的字段') + '</div></div>' +
     '<div class="d-body ed-form">' +
     '<div class="f-row ed-row"><div class="f-key"><span class="fk-cn">行名</span><span class="fk-en">RowName</span></div>' +
     '<div class="f-val"><input class="ed-ctl mono" id="new-rowname" placeholder="必填 · 表内唯一" autocomplete="off" spellcheck="false" /></div>' +
-    '<div class="f-desc">这一行的唯一标识；别的表靠这个名字引用本行</div></div>' +
+    '<div class="f-desc">' + (from ? '复制不会沿用原行名 —— 这里必须填一个新名字' : '这一行的唯一标识；别的表靠这个名字引用本行') + '</div></div>' +
     rowsHtml + '</div>' +
     '<div class="ed-foot"><button class="btn" id="new-cancel">取消 <kbd>Esc</kbd></button>' +
     '<button class="btn primary" id="new-add">加入待保存 <kbd>Ctrl ↵</kbd></button></div>';
   el.scrollTop = 0;
 
   if (typeof SE !== 'undefined') SE.bind(el.querySelector('.ed-form'), EP.draft);
-  $e('#new-cancel').onclick = () => { EP.detailMode = 'view'; EP.draft = null; renderDetail(null); };
+  $e('#new-cancel').onclick = () => { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; renderDetail(null); };
   $e('#new-add').onclick = () => applyNewRow(t);
   const rn = $e('#new-rowname');
   if (rn) rn.focus();
@@ -585,13 +609,14 @@ async function applyNewRow(t) {
     if (rnEl) rnEl.focus();
     return;
   }
-  const { patch, bad } = collectForm(t, {});
+  const { patch, bad } = collectForm(t, {}, EP.newBase);
   if (bad.length) { uiAlert('有字段无法解析', bad.join('\n')); return; }
   const value = Object.assign({ RowName: rn }, patch);
   EP.pending.set(PK(t.name, rn), { table: t.name, row: rn, append: true, value: value });
   EP.detailMode = 'view';
   EP.editRow = null;
   EP.draft = null;
+  EP.newBase = null;
   updatePendingBar();
   syncDelMarks();
   $e('#detail').innerHTML = '<div class="d-head"><div class="d-rn">' + esc(rn) +
@@ -610,22 +635,54 @@ function isEmptyStruct(v) {
   return v === '' || v === null;
 }
 
-function collectForm(t, row) {
+/* 把控件里的文本解析成 JSON 值。orig 只用来决定枚举 / 数值该转成什么类型。 */
+function parseScalar(f, el, raw, orig) {
+  let val;
+  let has = true;
+  if (el.classList.contains('ed-json')) {
+    if (!raw.trim()) has = false;
+    else {
+      try { val = JSON.parse(raw); } catch (e) { return { err: f.name + '：JSON 非法 — ' + e.message }; }
+    }
+  } else if (f.kind === 'bool') {
+    if (raw === '') has = false; else val = raw === 'true';
+  } else if (f.kind === 'number' || f.kind === 'int') {
+    if (raw === '') has = false;
+    else {
+      const n = Number(raw);
+      if (Number.isNaN(n)) return { err: f.name + '：不是数字' };
+      val = n;
+    }
+  } else if (f.kind === 'enum') {
+    // 枚举是数字常量：<select> 的 value 永远是字符串，要按原值类型转回来，
+    // 否则「打开编辑不改任何东西直接应用」会把 0 写成 "0"。
+    if (raw === '') has = false;
+    else val = typeof orig === 'number' ? Number(raw) : raw;
+  } else {
+    val = raw;
+  }
+  return { has: has, val: val };
+}
+
+/* base 非空 = 新增 / 复制行：控件已经按模板值预填，没动的字段要「原样带上」而不是跳过。
+   编辑模式（base 为 null）沿用老逻辑：只收真正变化的字段。 */
+function collectForm(t, row, base) {
   const patch = {};
   const bad = [];
   const structFields = (EP.draft && EP.draft.fields) || new Set();
   const formEl = $e('#detail .ed-form');
+  const isNew = !!base;
 
   for (const f of t.fields) {
     if (f.name === 'RowName') continue;
-    const orig = row[f.name];
+    const orig = isNew ? base[f.name] : row[f.name];
 
     // 结构化字段：真源是 draft，DOM 只负责显示
     if (structFields.has(f.name)) {
       const val = EP.draft.values[f.name];
-      // 原值缺省或 null、编辑器里又是空容器（结构化编辑器会把 null 兜成 {} / []）＝没改动
+      // 原值缺省或 null、编辑器里又是空容器（结构化编辑器会把 null 兜成 {} / []）＝没内容
       if ((orig === undefined || orig === null) && isEmptyStruct(val)) continue;
-      if (sameJson(orig, val)) continue;
+      if (!isNew && sameJson(orig, val)) continue;
       patch[f.name] = val;
       continue;
     }
@@ -633,44 +690,31 @@ function collectForm(t, row) {
     const el = formEl && formEl.querySelector('[data-field="' + f.name + '"]');
     if (!el) continue;
     const raw = el.value;
-    // 第一道闸：控件里的文本和原值一模一样 → 用户根本没动这个字段，
-    // 直接跳过。后面所有类型转换、空值判断都不该再参与。
-    if (orig !== undefined && orig !== null && typeof orig !== 'object' && raw === String(orig)) continue;
-    let val;
-    let has = true;
 
-    if (el.classList.contains('ed-json')) {
-      if (!raw.trim()) has = false;
-      else {
-        try { val = JSON.parse(raw); } catch (e) { bad.push(f.name + '：JSON 非法 — ' + e.message); continue; }
-      }
-    } else if (f.kind === 'bool') {
-      if (raw === '') has = false; else val = raw === 'true';
-    } else if (f.kind === 'number' || f.kind === 'int') {
-      if (raw === '') has = false;
-      else {
-        const n = Number(raw);
-        if (Number.isNaN(n)) { bad.push(f.name + '：不是数字'); continue; }
-        val = n;
-      }
-    } else if (f.kind === 'enum') {
-      // 枚举是数字常量：<select> 的 value 永远是字符串，要按原值类型转回来，
-      // 否则「打开编辑不改任何东西直接应用」会把 0 写成 "0"。
-      if (raw === '') has = false;
-      else val = typeof orig === 'number' ? Number(raw) : raw;
-    } else {
-      val = raw;
+    // 控件里的文本和模板/原值一模一样 → 用户没动这个字段
+    if (orig !== undefined && orig !== null && typeof orig !== 'object' && raw === String(orig)) {
+      if (isNew) patch[f.name] = orig;   // 复制行要带上它，且保持原始 JSON 类型
+      continue;
     }
 
-    // 只收真正变化的字段：空输入框不等于「把字段改成空串」，
-    // 否则每次保存都会给没填备注的行凭空写回 "Notes": ""。
-    if (!has) continue;                              // 清空字段暂不支持
+    const got = parseScalar(f, el, raw, orig);
+    if (got.err) { bad.push(got.err); continue; }
+
+    // 空输入框不等于「把字段改成空串」；复制行里清空则回落模板值
+    if (!got.has) {
+      if (isNew && orig !== undefined && orig !== null) patch[f.name] = orig;
+      continue;
+    }
+    const val = got.val;
     // 原本就没有这个字段、或者是 null，空串不算改动（null 和 "" 在反序列化时同义）
     if (val === '' && (orig === undefined || orig === null)) continue;
-    if (sameJson(orig, val)) continue;
+    if (!isNew && sameJson(orig, val)) continue;
     // 数值字段的原文可能写成字符串（"0.75"、"1"）、布尔也可能写成 "true"；
     // 只要文本等价就算没改，别顺手把 JSON 类型改掉。
-    if (typeof orig !== 'object' && orig !== undefined && orig !== null && String(orig) === String(val)) continue;
+    if (typeof orig !== 'object' && orig !== undefined && orig !== null && String(orig) === String(val)) {
+      if (isNew) patch[f.name] = orig;
+      continue;
+    }
     patch[f.name] = val;
   }
   return { patch, bad };
@@ -681,7 +725,7 @@ function collectForm(t, row) {
    有弹层打开时让位：引用选择器 / 命令面板 / diff 弹窗 / 确认框 / 列编辑都会先用 Escape。
    它们的处理函数已经 preventDefault，这里靠 defaultPrevented 判断，避免一次 Esc 把编辑也关掉。 */
 function overlayOpen() {
-  return !!document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask');
+  return !!document.querySelector('.rp-mask:not([hidden]), .cmdk-mask:not([hidden]), .cfm-mask, .modal-mask, .ce-mask, .gd-mask:not([hidden])');
 }
 function isTyping(el) {
   if (!el) return false;
@@ -728,8 +772,18 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  /* 只读态：E 编辑本行，Delete 删除本行 */
+  /* 只读态：E 编辑本行，Delete 删除本行，Ctrl+D 复制本行 */
   if (overlayOpen() || isTyping(e.target)) return;
+  /* Ctrl/Cmd+D 复制：Excel 的 duplicate 手感，顺手吞掉浏览器「加入书签」 */
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+    if (EP.detailMode !== 'view') return;
+    const cn = state.selRow;
+    const crow = cn ? (state.rows || []).find((x) => x.RowName === cn) : null;
+    if (!crow) return;
+    e.preventDefault();
+    copyRowFlow(crow);
+    return;
+  }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const rn = state.selRow;
   if (!rn) return;
@@ -767,6 +821,25 @@ function applyForm(row, t) {
   setStatus(EP.pending.size ? '已加入待保存队列（' + EP.pending.size + ' 行）' : '没有改动');
 }
 
+
+/* ---------------- 复制行 ----------------
+   以选中行为模板开一张「新增行」表单：字段预填模板值，RowName 留空。
+   入队仍然是 append op，和其它新增共用一次 diff 预览 + 一次写盘。 */
+function copyRowFlow(row) {
+  const t = state.sem.tables[state.cur];
+  if (!t) return;
+  if (!row) { setStatus('先在中间表格里选一行，再点「复制行」'); return; }
+  EP.detailMode = 'new';
+  EP.editRow = null;
+  renderNewRowForm(t, row);
+  setStatus('正在复制 ' + row.RowName + ' · 填一个新行名后加入待保存');
+}
+
+function copySelectedRow() {
+  const rn = state.selRow || currentSelRow();
+  const row = rn ? (state.rows || []).find((x) => x.RowName === rn) : null;
+  copyRowFlow(row);
+}
 
 /* ---------------- 删除当前行 ---------------- */
 
@@ -837,6 +910,12 @@ window.renderDetail = function (row) {
   editBtn.innerHTML = '编辑本行 <kbd>E</kbd>';
   editBtn.onclick = () => { EP.detailMode = 'edit'; EP.editRow = row.RowName; renderEditForm(row); };
 
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn';
+  copyBtn.title = '以这一行为模板新增一行（Ctrl+D）';
+  copyBtn.innerHTML = '复制本行 <kbd>Ctrl D</kbd>';
+  copyBtn.onclick = () => copyRowFlow(row);
+
   const delBtn = document.createElement('button');
   delBtn.className = 'btn danger';
   delBtn.title = '删除本行（Delete）';
@@ -844,15 +923,28 @@ window.renderDetail = function (row) {
   delBtn.onclick = () => deleteRowFlow(row);
 
   wrap.appendChild(editBtn);
+  wrap.appendChild(copyBtn);
   wrap.appendChild(delBtn);
   head.appendChild(wrap);
+  syncCopyBtn();
 };
+
+/* 工具条「复制行」在没有选中行时置灰，避免用户点了才发现要选行 */
+function syncCopyBtn() {
+  const btn = document.getElementById('btn-copy-row');
+  if (!btn) return;
+  const rn = state.selRow;
+  const has = !!(rn && (state.rows || []).some((x) => x.RowName === rn));
+  btn.disabled = !has;
+  btn.title = has ? ('以 ' + rn + ' 为模板新增一行（填个新行名即可）') : '先在中间表格里选一行';
+}
 
 /* 表格每次重渲染都会丢掉 .tr-del 类，这里挂一层包装补回来 */
 const baseRenderGrid = window.renderGrid;
 window.renderGrid = function () {
   baseRenderGrid();
   syncDelMarks();
+  syncCopyBtn();
 };
 
 /* ---------------- 启动 ---------------- */
