@@ -24,3 +24,7 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+# 自动更新：只在桌面平台编译（移动端不支持自更新）
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2"

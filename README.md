@@ -45,15 +45,31 @@
 ```bash
 cd config-studio
 npm install
-npm run tauri:build     # = tauri build --no-bundle
+
+npm run tauri:build     # = tauri build --no-bundle，只出裸 exe
+npm run tauri:bundle    # = tauri build，裸 exe + NSIS 安装包（自动更新只认这个）
 ```
 
-产物：`src-tauri/target/release/config-studio.exe`（免安装，拷走即用）。
-想再要安装包（NSIS）就去掉 `--no-bundle`，但那一步要从 GitHub 下 NSIS，国内可能超时。
+`tauri:bundle` 要签名私钥，否则只出安装包、不出 `.sig`，自动更新会校验失败：
+
+```bash
+export TAURI_SIGNING_PRIVATE_KEY='C:/Users/kefengwei/.tauri/config-studio.key'
+npm run tauri:bundle
+```
+
+产物：
+
+| 文件 | 用途 |
+|---|---|
+| `src-tauri/target/release/config-studio.exe` | 免安装，拷走即用。**不能自动更新** |
+| `src-tauri/target/release/bundle/nsis/Config Studio_x.y.z_x64-setup.exe` | 安装包，能自动更新 |
+| 上面的 `.exe.sig` | 发布时必须一起传，少了它客户端校验不过 |
 
 **改了前端必须重新出包**：`dist/` 是编译时内嵌进 exe 的，只跑 `npm run build` 不会更新 exe。
-顺序是 `npm run build` → `npm run tauri:build`。构建时会给 `index.html` 里的 css/js 统一加
+顺序是 `npm run build` → `npm run tauri:bundle`。构建时会给 `index.html` 里的 css/js 统一加
 `?v=<时间戳>`，所以换包后不用手动清 WebView2 缓存，不会读到旧脚本。
+
+正式发版走 GitHub Actions，命令见下面「自动更新与发版」。
 
 ### 第一次打开
 
@@ -94,6 +110,61 @@ git-fetch-with-cli = true
 不在国内就把这个文件删掉（会回落到官方源）。
 
 图标是脚本生成的（Primer 蓝方块 + 网格），改配色就改 `scripts/make-icon.mjs` 然后 `npm run icon`。
+
+## 自动更新与发版
+
+桌面版装好之后会自己检查更新，更新源是本仓库的 GitHub Release。
+
+### 用户看到什么
+
+| 时机 | 行为 |
+|---|---|
+| 启动 3 秒后 | 静默检查一次，没更新就什么都不说 |
+| 每 4 小时 | 再静默检查一次 |
+| 点顶栏「下载」图标 | 手动检查，没更新会明确说「已经是最新版本」 |
+
+有新版时顶部浮出一条：版本号 +「立即更新 / 稍后」。
+
+- 点「立即更新」→ 显示下载进度（`正在下载 42%　3.1 MB / 7.4 MB`）→ 自动安装 → 自动重启
+- 点「稍后」→ 本次运行不再打扰；下次启动还会提示（旧版确实还在，提示是对的）
+- 更新失败（断网、GitHub 被墙、签名对不上）→ 弹窗说明原因，并给「复制下载链接」，可以粘到浏览器手动下安装包
+
+### 发一个版
+
+```bash
+node scripts/release.mjs 0.2.0      # 把四处清单的版本号同步成 0.2.0
+node scripts/build.mjs              # 重建 dist
+git add -A && git commit -m "chore: 发布 v0.2.0"
+git tag v0.2.0
+git push github main --tags
+```
+
+推 tag 之后 `.github/workflows/release.yml` 会在 windows-latest 上：`npm ci` → `npx tauri build`（出 NSIS + 签名）→ 把 `Config Studio_0.2.0_x64-setup.exe`、同名的 `.exe.sig` 和 `latest.json` 发成 Release。
+整条流水线约 8–12 分钟，跑完去 Actions 看绿灯、Release 页看产物。
+
+`release.mjs` 会同步四处版本：`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock`。它只改文件，不提交、不打 tag、不推送。
+
+### 一次性配置（已配好，换机器要重做）
+
+| 东西 | 在哪 |
+|---|---|
+| 签名私钥 | `C:/Users/kefengwei/.tauri/config-studio.key`（**必须备份**） |
+| 签名公钥 | `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey` |
+| Secret `TAURI_SIGNING_PRIVATE_KEY` | 私钥**文件内容**（不是路径） |
+| Secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 空字符串（生成密钥时没设密码） |
+
+### 三条硬约束
+
+1. **tag 名必须等于 `tauri.conf.json` 的 `version`**。`release.mjs` 已经帮你对齐，别手改。
+2. **仓库必须 public**。自动更新是匿名拉 `releases/latest/download/latest.json`，私有仓库会 404。
+3. **只有 NSIS 安装版能自动更新**。发出去的裸 exe、绿色版都不行 —— 它们没有安装记录，装完不知道往哪覆盖。
+
+### 私钥丢了会怎样
+
+新构建的签名和老版本内置的公钥对不上 → 所有老用户点「立即更新」都会失败（走兜底手动下载）。
+补救只有一个：让用户卸载重装一次新版，之后才恢复自动更新。
+
+所以私钥要跟代码分开备份，并且**不要提交进仓库**。
 
 ## 快捷键总表（按 `?` 打开）
 

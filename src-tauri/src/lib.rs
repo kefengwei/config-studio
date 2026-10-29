@@ -559,6 +559,12 @@ async fn git_commit(
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
+    .setup(|app| {
+      // 自动更新插件：注册后前端可用 plugin:updater|check 等命令
+      #[cfg(desktop)]
+      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+      Ok(())
+    })
     .manage(AppState::default())
     .invoke_handler(tauri::generate_handler![
       ping,

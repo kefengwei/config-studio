@@ -1381,7 +1381,11 @@ pfInit();
 /* 桌面版启动器（boot.js）要先让用户选配置目录，选好后才调 __START_APP__ */
 function startApp() {
   init()
-    .then(() => { watchDisk(); if (window.GIT && window.GIT.refresh) window.GIT.refresh(); })
+    .then(() => {
+      watchDisk();
+      if (window.GIT && window.GIT.refresh) window.GIT.refresh();
+      if (window.UPD && window.UPD.start) window.UPD.start();
+    })
     .catch((e) => { setStatus('加载失败: ' + e.message); console.error(e); });
 }
 window.__START_APP__ = startApp;

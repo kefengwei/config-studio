@@ -1,0 +1,57 @@
+name: release
+
+# 发版方式：改版本号 → 打 tag → 推 tag，CI 自动构建 NSIS 安装包并发布到 Release。
+# 需要的仓库 Secret：
+#   TAURI_SIGNING_PRIVATE_KEY          私钥内容（不是路径）：cat ~/.tauri/config-studio.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD 私钥密码；本仓库生成时是空密码，填空字符串即可
+# GITHUB_TOKEN 由 Actions 自动提供，不用手动配。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 装 Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: 装前端依赖
+        run: npm ci
+
+      - name: 构建 + 发 Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Config Studio ${{ github.ref_name }}'
+          releaseBody: |
+            Windows 安装包：下载 Config Studio_*_x64-setup.exe 双击安装。
+
+            装过旧版的用户不用手动下载 —— 工作台启动时会自己发现新版本并提示安装。
+          releaseDraft: false
+          prerelease: false
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
+
