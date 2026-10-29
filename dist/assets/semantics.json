@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-28T09:21:41.496Z",
+ "generatedAt": "2026-10-29T02:11:26.962Z",
  "source": {
   "configDir": "configs",
   "schemaDir": "json-schemas",
@@ -7,7 +7,7 @@
  },
  "stats": {
   "tables": 95,
-  "rows": 7565,
+  "rows": 7603,
   "actuators": 52,
   "polyEntries": 127,
   "refFields": 60,
@@ -268,8 +268,8 @@
   "ConditionRowName": {
    "target": "Config_Condition",
    "confidence": 1,
-   "hits": 142,
-   "total": 142,
+   "hits": 143,
+   "total": 143,
    "reason": "naming",
    "sample": [
     "10005",
@@ -282,8 +282,8 @@
   "TimeControlRowName": {
    "target": "Config_TimeControl",
    "confidence": 1,
-   "hits": 84,
-   "total": 84,
+   "hits": 82,
+   "total": 82,
    "reason": "naming",
    "sample": [
     "Activity_Sprint_TreasureChest",
@@ -462,8 +462,8 @@
   "StatisticRowName": {
    "target": "Config_Statistic",
    "confidence": 1,
-   "hits": 245,
-   "total": 245,
+   "hits": 258,
+   "total": 258,
    "reason": "naming",
    "sample": [
     "MainLevel_Progress",
@@ -1806,7 +1806,7 @@
      "desc": "",
      "target": "Config_CatalogItem",
      "confidence": 0.88,
-     "samples": 51
+     "samples": 52
     }
    },
    "definedIn": "Config_Activity"
@@ -2072,7 +2072,7 @@
      "desc": "统计表RowName",
      "target": "Config_Statistic",
      "confidence": 1,
-     "samples": 235
+     "samples": 248
     }
    },
    "definedIn": "Config_Condition"
@@ -2788,7 +2788,9 @@
     "GiftPack": {
      "type": "string",
      "desc": "",
-     "target": null
+     "target": "Config_GiftPackInstallment",
+     "confidence": 1,
+     "samples": 3
     }
    },
    "definedIn": "Config_Statistic"
@@ -3215,8 +3217,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3225,8 +3227,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3434,8 +3436,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     }
@@ -3507,8 +3509,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3517,8 +3519,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3671,8 +3673,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -3681,8 +3683,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3851,8 +3853,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -3866,8 +3868,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件行名称"
     }
@@ -4056,8 +4058,8 @@
   },
   "Config_CatalogItem": {
    "name": "Config_CatalogItem",
-   "rowCount": 296,
-   "notesFilled": 296,
+   "rowCount": 297,
+   "notesFilled": 297,
    "notesRate": 100,
    "fields": [
     {
@@ -4101,8 +4103,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -4357,8 +4359,8 @@
   },
   "Config_Condition": {
    "name": "Config_Condition",
-   "rowCount": 406,
-   "notesFilled": 406,
+   "rowCount": 407,
+   "notesFilled": 407,
    "notesRate": 100,
    "fields": [
     {
@@ -4493,8 +4495,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间控制, 用于控制重置"
     },
@@ -4532,8 +4534,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -4542,8 +4544,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间行"
     },
@@ -4940,8 +4942,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -4950,8 +4952,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5014,8 +5016,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     }
@@ -5049,8 +5051,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -5059,8 +5061,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5177,8 +5179,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5187,8 +5189,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间行"
     },
@@ -5378,8 +5380,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 245,
-     "total": 245,
+     "hits": 258,
+     "total": 258,
      "implicit": false,
      "desc": "统计RowName"
     },
@@ -5491,8 +5493,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -5516,8 +5518,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5588,8 +5590,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     },
@@ -5729,8 +5731,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "解锁条件"
     },
@@ -5905,8 +5907,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -5915,8 +5917,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6026,8 +6028,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6036,8 +6038,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6136,8 +6138,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6146,8 +6148,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6253,8 +6255,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6263,8 +6265,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6357,8 +6359,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6367,8 +6369,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6461,8 +6463,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6471,8 +6473,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6565,8 +6567,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，没有为常驻"
     },
@@ -6575,8 +6577,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6990,8 +6992,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件行名称"
     },
@@ -7063,8 +7065,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -7073,8 +7075,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间行"
     },
@@ -7137,8 +7139,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "在新手引导这里, 如果ConditionRowName为空, 表示不需要根据条件来激活新手引导"
     }
@@ -7170,8 +7172,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -7180,8 +7182,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -7237,8 +7239,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -7247,8 +7249,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -7677,8 +7679,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -7687,8 +7689,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -7718,8 +7720,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 245,
-     "total": 245,
+     "hits": 258,
+     "total": 258,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -7799,8 +7801,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -7809,8 +7811,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -7840,8 +7842,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 245,
-     "total": 245,
+     "hits": 258,
+     "total": 258,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -7906,8 +7908,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -7916,8 +7918,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -7947,8 +7949,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 245,
-     "total": 245,
+     "hits": 258,
+     "total": 258,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -8080,8 +8082,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -8090,8 +8092,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -8121,8 +8123,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 245,
-     "total": 245,
+     "hits": 258,
+     "total": 258,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -8225,8 +8227,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间控制RowName"
     },
@@ -8248,8 +8250,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件"
     },
@@ -8369,8 +8371,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间控制RowName"
     },
@@ -8550,8 +8552,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称"
     }
@@ -8583,8 +8585,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -8684,7 +8686,7 @@
   },
   "Config_PlayerCustom": {
    "name": "Config_PlayerCustom",
-   "rowCount": 54,
+   "rowCount": 55,
    "notesFilled": 0,
    "notesRate": 0,
    "fields": [
@@ -8732,9 +8734,9 @@
   },
   "Config_PlayerTriggerCondition": {
    "name": "Config_PlayerTriggerCondition",
-   "rowCount": 17,
-   "notesFilled": 16,
-   "notesRate": 94,
+   "rowCount": 15,
+   "notesFilled": 14,
+   "notesRate": 93,
    "fields": [
     {
      "name": "RowName",
@@ -8753,8 +8755,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间行名称，类型必须是玩家开始时间"
     },
@@ -8763,8 +8765,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "关联的条件行名称，TriggerCatalogItem 只能填一个"
     },
@@ -8896,8 +8898,8 @@
   },
   "Config_Product": {
    "name": "Config_Product",
-   "rowCount": 173,
-   "notesFilled": 173,
+   "rowCount": 172,
+   "notesFilled": 172,
    "notesRate": 100,
    "fields": [
     {
@@ -8950,8 +8952,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "时间控制行名称"
     },
@@ -8965,8 +8967,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     },
@@ -9048,8 +9050,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": ""
     },
@@ -9093,8 +9095,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9108,8 +9110,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件行名称"
     }
@@ -9183,8 +9185,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9289,8 +9291,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     }
@@ -9368,8 +9370,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9383,8 +9385,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件行名称"
     },
@@ -9476,9 +9478,9 @@
   },
   "Config_Statistic": {
    "name": "Config_Statistic",
-   "rowCount": 275,
-   "notesFilled": 143,
-   "notesRate": 52,
+   "rowCount": 288,
+   "notesFilled": 144,
+   "notesRate": 50,
    "fields": [
     {
      "name": "RowName",
@@ -9503,8 +9505,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9535,8 +9537,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     }
@@ -9645,8 +9647,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": ""
     }
@@ -9726,9 +9728,9 @@
   },
   "Config_Task": {
    "name": "Config_Task",
-   "rowCount": 527,
-   "notesFilled": 436,
-   "notesRate": 83,
+   "rowCount": 554,
+   "notesFilled": 463,
+   "notesRate": 84,
    "fields": [
     {
      "name": "RowName",
@@ -9759,8 +9761,8 @@
      "kind": "ref",
      "target": "Config_TimeControl",
      "confidence": 1,
-     "hits": 84,
-     "total": 84,
+     "hits": 82,
+     "total": 82,
      "implicit": false,
      "desc": "关联的时间控制行"
     },
@@ -9803,8 +9805,8 @@
      "kind": "ref",
      "target": "Config_Condition",
      "confidence": 1,
-     "hits": 142,
-     "total": 142,
+     "hits": 143,
+     "total": 143,
      "implicit": false,
      "desc": "条件行名称"
     },
@@ -9838,9 +9840,9 @@
   },
   "Config_TimeControl": {
    "name": "Config_TimeControl",
-   "rowCount": 94,
-   "notesFilled": 88,
-   "notesRate": 94,
+   "rowCount": 92,
+   "notesFilled": 86,
+   "notesRate": 93,
    "fields": [
     {
      "name": "RowName",

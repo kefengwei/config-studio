@@ -67,6 +67,10 @@ fn run(dir: &Path, args: &[&str]) -> Result<String, String> {
     .current_dir(dir)
     .env("GIT_TERMINAL_PROMPT", "0")
     .env("GIT_OPTIONAL_LOCKS", "0")
+    /* 远端不可达时 git 会一直挂着（窗口就永远卡在「拉取中」）。
+       30 秒内低于 1KB/s 就主动失败，比无限等待好。 */
+    .env("GIT_HTTP_LOW_SPEED_LIMIT", "1000")
+    .env("GIT_HTTP_LOW_SPEED_TIME", "30")
     .env("LC_ALL", "C");
   #[cfg(windows)]
   cmd.creation_flags(CREATE_NO_WINDOW);
@@ -220,7 +224,9 @@ pub fn branches(dir: &Path) -> Result<Vec<GitBranch>, String> {
     let name = it.next().unwrap_or("").trim().to_string();
     let head = it.next().unwrap_or("").trim().to_string();
     let up = it.next().unwrap_or("").trim().to_string();
-    if name.is_empty() || name.ends_with("/HEAD") {
+    // %(refname:short) 会把 refs/remotes/origin/HEAD 输出成裸 "origin"，它不是分支，
+    // 混进列表里点一下就会 checkout 到奇怪的东西，这里一并过滤掉。
+    if name.is_empty() || name.ends_with("/HEAD") || name == "origin" || name == "upstream" {
       continue;
     }
     let is_remote = name.starts_with("origin/") || name.starts_with("upstream/");
@@ -243,6 +249,13 @@ pub fn checkout(dir: &Path, branch: &str) -> Result<String, String> {
     // 远程分支：建本地跟踪分支。origin/foo -> foo
     if b.starts_with("origin/") || b.starts_with("upstream/") {
       let short = rest.to_string();
+      // 本地已经有同名分支时 checkout -b 会报 "a branch named 'x' already exists"，
+      // 这种情况下直接切本地分支（它是之前从同一个远端建过的，跟踪关系还在）。
+      let exists = run(&root, &["rev-parse", "--verify", "--quiet", &format!("refs/heads/{}", short)]).is_ok();
+      if exists {
+        run(&root, &["checkout", &short])?;
+        return Ok(short);
+      }
       run(&root, &["checkout", "-b", &short, "--track", b])?;
       return Ok(short);
     }

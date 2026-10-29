@@ -438,6 +438,22 @@
     }
   }
 
+  /* 切分支 / 拉取之后，工作台里缓存的旧文件与语义层行数全部过期。
+     重新加载页面是最可靠的失效方式（数据层有四层缓存，逐个清容易漏）。
+     有未保存改动时先提醒，用户坚持要继续才刷。 */
+  async function afterRepoChange() {
+    const hasPending = !!(window.EDIT && window.EDIT.hasPending && window.EDIT.hasPending());
+    if (hasPending) {
+      const ok = window.confirm('你还有未保存的改动。\n\n切分支 / 拉取后工作台要重新加载，这些改动会丢失。\n\n建议先「取消」、点底部「预览并保存」写完再操作。\n\n仍然继续？');
+      if (!ok) {
+        const st = document.getElementById('status');
+        if (st) st.textContent = '仓库已变化，但工作台没有重新加载 —— 当前显示的是旧数据，保存前请手动刷新（F5）';
+        return;
+      }
+    }
+    location.reload();
+  }
+
   /* ---------------- 交互 ---------------- */
   async function onAct(e) {
     const el = e.currentTarget;
@@ -468,29 +484,36 @@
       G.busy = 'checkout';
       G.err = '';
       render();
+      let ok = false;
       try {
         await invoke('git_checkout', { branch: b });
         G.picker = false;
+        ok = true;
       } catch (err) {
         G.err = '切换失败：' + String(err);
       }
       G.busy = '';
       await refresh();
+      if (ok) await afterRepoChange();
       return;
     }
     if (x === 'pull' || x === 'push') {
       G.busy = x;
       G.err = '';
       render();
+      let pulled = false;
       try {
         const out = await invoke(x === 'pull' ? 'git_pull' : 'git_push');
         const st = document.getElementById('status');
         if (st) st.textContent = (x === 'pull' ? '已拉取' : '已推送') + (out ? ' · ' + out.split('\n')[0] : '');
+        pulled = x === 'pull';
       } catch (err) {
         G.err = (x === 'pull' ? '拉取失败：' : '推送失败：') + String(err);
       }
       G.busy = '';
       await refresh();
+      /* 拉取会改工作区文件，缓存必须作废；推送只动远端，不用刷新 */
+      if (pulled) await afterRepoChange();
       return;
     }
     if (x === 'commit') return doCommit();

@@ -412,6 +412,14 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 .toolbar { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
 .toolbar .sf-wrap { flex: 0 1 260px; width: auto; }
 .toolbar #row-search { height: 30px; }
+/* 「定位」开关：搜索后是否自动选中第一个命中行 */
+.locate-wrap {
+  display: flex; align-items: center; gap: 4px; flex: 0 0 auto;
+  font-size: 11.5px; color: var(--ink-2); white-space: nowrap;
+  user-select: none; cursor: pointer; padding: 0 2px;
+}
+.locate-wrap:hover { color: var(--ink); }
+.locate-wrap input { width: 13px; height: 13px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 .pager { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); }
 .btn {
   height: 28px; min-width: 28px; padding: 0 9px;
@@ -442,6 +450,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
    否则连批量选择都没法做。 */
 .center.narrow .grid-wrap { padding: 0 6px 12px; }
 .center.narrow .toolbar .sf-wrap { display: none; }
+.center.narrow .toolbar .locate-wrap { display: none; }
 /* 128px 极窄模式：只留标题 + 翻页按钮，统计行和页码让位给表格 */
 .center.narrow .meta-row { display: none; }
 .center.narrow .toolbar { padding: 4px 6px 6px; }
@@ -641,6 +650,8 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
   padding: 8px 18px; font-size: 12px;
   background: var(--warn-bg); border-top: 1px solid var(--warn-line); color: var(--warn-ink);
 }
+/* 有 display:flex 就必须显式处理 hidden，否则清空队列后这条永远不消失 */
+.pending-bar[hidden] { display: none; }
 .pending-bar .pb-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
 .pending-bar .pb-rows { color: var(--warn-ink); font-family: var(--mono); font-size: 11px; }
 .pending-bar .spacer { flex: 1; }
@@ -791,6 +802,10 @@ textarea.ed-json {
 .dl.del { background: var(--bad-bg); color: var(--bad-ink); }
 .dl.add { background: var(--ok-bg); color: var(--ok-ink); }
 
+.hunk-more {
+  margin: 0 14px 10px; padding: 8px 12px; border-radius: 8px; font-size: 12px;
+  background: var(--warn-bg); border: 1px dashed var(--warn-line); color: var(--warn-ink);
+}
 .dlg-warn, .dlg-err { margin: 10px 14px 0; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
 .dlg-warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
 .dlg-err { background: var(--bad-bg); border: 1px solid var(--bad-line); color: var(--bad-ink); }

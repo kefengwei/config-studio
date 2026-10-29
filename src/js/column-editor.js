@@ -758,6 +758,7 @@ async function saveColumn(m) {
   setStatus('校验中…');
   const { data } = await postJson('/api/preview', { table: S.table, ops });
   if (!data || !data.diff) { setStatus('预览失败'); alert((data && (data.error || (data.errors || []).join('\n'))) || '预览失败'); return; }
+  setStatus('就绪');
   showDiffDialog(data, async () => {
     const res = await postJson('/api/apply', { table: S.table, ops });
     if (!res.data.ok) { alert('保存失败：' + (res.data.error || (res.data.errors || []).join('\n'))); return false; }

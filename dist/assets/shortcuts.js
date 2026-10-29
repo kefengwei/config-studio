@@ -129,7 +129,8 @@
     var list = (res && res.backups) || [];
     if (!list.length) { await uiAlert('没有可撤销的保存', '当前工作台还没有产生过备份。'); return; }
     var b = list[0];
-    var when = new Date(b.mtime).toLocaleString('zh-CN');
+    /* 优先用 id 前缀还原的时间：mtime 是文件复制过来的，不是备份时刻 */
+    var when = new Date(b.createdAt || b.mtime).toLocaleString('zh-CN');
     var ok = await uiConfirm('撤销最近一次保存？', b.id + '\n\n写入时间 ' + when + ' · ' + Math.round(b.size / 1024) + ' KB。被撤销的表会还原成这次保存之前的内容。', { okText: '撤销', danger: true });
     if (!ok) return;
     status('正在撤销…');

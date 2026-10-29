@@ -10,6 +10,7 @@ const EP = {
   pending: new Map(),   // 'table\u0000row' -> { table, row, patch, orig }
   refCache: new Map(),
   draft: null,
+  editShown: null,      // 编辑表单的显示基线（磁盘值 + 队列里的改动）
   newBase: null,        // 新增 / 复制行时的初始值快照（编辑模式为 null）
 };
 
@@ -95,24 +96,40 @@ function currentSelRow() {
 }
 
 /* ---------------- 待保存队列 ---------------- */
+/* 同一行可能被反复编辑，patch 每次都是「相对磁盘原值的全量差异」，
+   所以这里整体替换而不是增量合并 —— 增量合并会让「第二次改回原值」被第一次的旧值盖住。
+   orig 只在第一次入队时记下（磁盘原值），之后复用。 */
 function addPending(table, row, patch, orig) {
+  /* 保存过程中继续改同一行，会在写盘结束后被 savedKeys 精确删除 —— 改动静默丢失。
+     写入窗口很短（本地文件），直接拒绝比做并发合并简单可靠。 */
+  if (EP.saving) { setStatus('正在保存，等写完后可以继续改这一行'); return; }
   const key = PK(table, row);
-  const cur = EP.pending.get(key) || { table, row, patch: {}, orig: orig || {} };
+  const old = EP.pending.get(key);
+  const base = (old && old.orig) || orig || {};
+  const next = {};
   for (const [k, v] of Object.entries(patch)) {
-    if (JSON.stringify(v) === JSON.stringify(cur.orig[k] ?? orig[k])) delete cur.patch[k];
-    else cur.patch[k] = v;
+    if (sameJson(v, base[k])) continue;
+    next[k] = v;
   }
-  if (!Object.keys(cur.patch).length) EP.pending.delete(key);
-  else EP.pending.set(key, cur);
+  if (!Object.keys(next).length) EP.pending.delete(key);
+  else EP.pending.set(key, { table: table, row: row, patch: next, orig: base });
   updatePendingBar();
   syncDelMarks();
 }
 
 /* 删除也进队列（和编辑共用一次 diff 预览 + 一次写盘） */
 function addPendingDel(table, row, refs) {
+  if (EP.saving) { setStatus('正在保存，等写完后可以继续操作'); return; }
   const key = PK(table, row);
   const old = EP.pending.get(key);
-  EP.pending.set(key, { table: table, row: row, del: true, patch: {}, refs: refs || (old && old.refs) || null });
+  /* 这一行可能已经先改过字段、还没保存（old.patch 非空）。删除只是入队等 diff，
+     不是立即抹掉数据 —— 保留原 patch，用户点「撤销删除」时才能把改动一起恢复。 */
+  EP.pending.set(key, {
+    table: table, row: row, del: true,
+    patch: (old && !old.del && old.patch) || {},
+    orig: (old && old.orig) || null,
+    refs: refs || (old && old.refs) || null
+  });
   updatePendingBar();
   syncDelMarks();
 }
@@ -234,9 +251,25 @@ async function reloadAfterSave(tables) {
   if (!kept) syncHash(state.cur, null);
 }
 
+/* 外层兜底：预览 / 弹窗 / 重载任何一环抛异常，都要让用户看见。
+   否则 promise 变成 unhandled rejection，状态栏永远停在「校验中…」。 */
 async function saveAll() {
-  if (!EP.pending.size) return;
+  if (EP.saving || !EP.pending.size) return;
+  try {
+    await saveAllInner();
+  } catch (e) {
+    console.error(e);
+    setStatus('保存失败：' + ((e && e.message) || e));
+    uiAlert('保存失败', String((e && e.message) || e) + '\n\n待保存队列里的改动没有丢，可以重试。');
+  }
+}
+
+async function saveAllInner() {
   const groups = groupPending();
+  /* 快照：保存期间用户还能继续编辑，结束时按 key 精确删除参与本次保存的条目，
+     不能 EP.pending.clear()（会把保存开始后新入队的改动一起吞掉）。 */
+  const savedKeys = [];
+  for (const [table, items] of groups) for (const p of items) savedKeys.push(PK(table, p.row));
   setStatus('校验中…');
   await ensureDelRefs();
 
@@ -266,24 +299,42 @@ async function saveAll() {
   const title = many ? '确认改动（' + parts.length + ' 张表）' : (onlyDel ? '确认删除' : onlyAdd ? '确认新增' : '确认改动');
 
   showMultiDiffDialog(parts, async () => {
+    EP.saving = true;
     const done = [];
+    try {
     for (const p of parts) {
       try {
         done.push(await DS.apply(p.table, p.ops));
       } catch (e) {
+        /* 冲突：磁盘被人改过，写盘还没开始（或只写了前面几张表）。
+           这种情况不删队列 —— 用户的改动是好的，只是基线过期了。 */
+        if (e && e.conflict) {
+          const rolled2 = [];
+          const fail2 = [];
+          for (const d of done) { try { await DS.undo(d.backup); rolled2.push(d.table); } catch (e2) { fail2.push(d.table + '（备份 ' + d.backup + '）'); } }
+          uiAlert('没有保存：文件已被外部修改', p.table + '\n\n' + e.message +
+            (rolled2.length ? '\n\n已还原本次已写入的：' + rolled2.join('、') : '') +
+            (fail2.length ? '\n\n⚠ 这几张表回滚失败，需要手动还原：' + fail2.join('、') : '') +
+            '\n\n你的改动还在待保存队列里。');
+          await reloadAfterSave(parts.map((x) => x.table));
+          setStatus('保存已取消 · 外部改动未受影响');
+          return false;
+        }
         const rolled = [];
-        for (const d of done) { try { await DS.undo(d.backup); rolled.push(d.table); } catch (e2) { } }
-        EP.pending.clear();
+        const failed = [];
+        for (const d of done) { try { await DS.undo(d.backup); rolled.push(d.table); } catch (e2) { failed.push(d.table + '（备份 ' + d.backup + '）'); } }
+        for (const k of savedKeys) EP.pending.delete(k);
         updatePendingBar();
         syncDelMarks();
-        uiAlert('保存失败，已回滚', p.table + '：' + e.message +
-          (rolled.length ? '\n\n已还原：' + rolled.join('、') : ''));
+        uiAlert(failed.length ? '保存失败，部分回滚失败' : '保存失败，已回滚', p.table + '：' + e.message +
+          (rolled.length ? '\n\n已还原：' + rolled.join('、') : '') +
+          (failed.length ? '\n\n⚠ 这几张表回滚失败，需要手动还原：' + failed.join('、') : ''));
         await reloadAfterSave(parts.map((x) => x.table));
         setStatus('保存失败');
         return false;
       }
     }
-    EP.pending.clear();
+    for (const k of savedKeys) EP.pending.delete(k);
     updatePendingBar();
     syncDelMarks();
     await reloadAfterSave(parts.map((x) => x.table));
@@ -296,12 +347,13 @@ async function saveAll() {
     const bs = done.map((d) => d.backup);
     setStatus((bits.join(' · ') || '已写入') + ' · 备份 ' + (bs.length > 1 ? bs[0] + ' 等 ' + bs.length + ' 个' : bs[0]));
     return true;
+    } finally { EP.saving = false; updatePendingBar(); }
   }, okText, title);
 }
 
 /* ---------------- diff 弹层 ---------------- */
 function hunksHtml(d) {
-  return d.hunks.map((h) => {
+  let body = d.hunks.map((h) => {
     const aStart = Math.max(1, h.aStart - h.before.length);
     return '<div class="hunk"><div class="hunk-head">@@ 第 ' + aStart + ' 行 @@</div>' +
       h.before.map((l) => '<div class="dl ctx">' + esc(l) + '</div>').join('') +
@@ -310,6 +362,13 @@ function hunksHtml(d) {
       h.after.map((l) => '<div class="dl ctx">' + esc(l) + '</div>').join('') +
       '</div>';
   }).join('');
+  // 差异过多时 diff 只返回前 N 段（json-diff.js 的 maxHunks），
+  // 不提示的话用户会以为这就是全部改动。
+  if (d.truncated) {
+    body += '<div class="hunk-more">差异过多，只显示前 ' + d.hunks.length + ' 段（共 ' + d.hunkCount +
+      ' 段、删除 ' + d.removedLines + ' 行 / 新增 ' + d.addedLines + ' 行）。写入前把关一下改动的范围。</div>';
+  }
+  return body;
 }
 
 function warnBlocks(warnings, errors) {
@@ -324,15 +383,7 @@ function warnBlocks(warnings, errors) {
 
 function showDiffDialog(data, onConfirm, confirmText, title) {
   const d = data.diff;
-  const hunkHtml = d.hunks.map((h) => {
-    const aStart = Math.max(1, h.aStart - h.before.length);
-    return '<div class="hunk"><div class="hunk-head">@@ 第 ' + aStart + ' 行 @@</div>' +
-      h.before.map((l) => '<div class="dl ctx">' + esc(l) + '</div>').join('') +
-      h.aLines.map((l) => '<div class="dl del">- ' + esc(l) + '</div>').join('') +
-      h.bLines.map((l) => '<div class="dl add">+ ' + esc(l) + '</div>').join('') +
-      h.after.map((l) => '<div class="dl ctx">' + esc(l) + '</div>').join('') +
-      '</div>';
-  }).join('');
+  const hunkHtml = hunksHtml(d);
 
   const warns = (data.warnings || []).length
     ? '<div class="dlg-warn"><b>校验提示</b><ul>' + data.warnings.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul></div>'
@@ -428,7 +479,7 @@ function syncEditFocus() {
 
 window.renderDetail = function (row) {
   // 点了别的行（或清空选择）就退出编辑态，否则会把上一行的表单套到新行上
-  if (EP.detailMode === 'edit' && (!row || row.RowName !== EP.editRow)) { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; }
+  if (EP.detailMode === 'edit' && (!row || row.RowName !== EP.editRow)) { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; EP.editShown = null; }
   // 新增行没填完就去点别的行：直接放弃这份表单（它还没进队列，没有副作用）
   if (EP.detailMode === 'new' && row) { EP.detailMode = 'view'; EP.draft = null; EP.newBase = null; }
   syncEditFocus();
@@ -507,14 +558,20 @@ function renderEditForm(row) {
   // draft 只装「走结构化编辑」的字段，其它字段仍然从 DOM 读
   EP.draft = { values: {}, fields: new Set() };
 
+  /* 表单显示「磁盘值 + 已入队的改动」。只显示磁盘值的话，同一行第二次编辑时
+     用户看到的是旧值，保存的却是队列里的新值 —— 以为改回原值，实际没有。 */
+  const pend = EP.pending.get(PK(state.cur, row.RowName));
+  const shown = pend && !pend.del ? Object.assign({}, row, pend.patch) : row;
+  EP.editShown = shown;
+
   const rowsHtml = fields.map((f) => {
     let ctrl;
     if (typeof SE !== 'undefined' && SE.supports(f)) {
-      EP.draft.values[f.name] = SE.normalize(f, row[f.name]);
+      EP.draft.values[f.name] = SE.normalize(f, shown[f.name]);
       EP.draft.fields.add(f.name);
       ctrl = SE.fieldHtml(f, EP.draft.values[f.name]);
     } else {
-      ctrl = ctrlHtml(t, f, row[f.name]);
+      ctrl = ctrlHtml(t, f, shown[f.name]);
     }
     return '<div class="f-row ed-row"><div class="f-key">' + fkeyHtml(f) +
       (f.target ? '<span class="k-target">→ ' + esc(f.target) + '</span>' : '') + '</div>' +
@@ -535,7 +592,7 @@ function renderEditForm(row) {
 
   if (typeof SE !== 'undefined') SE.bind(el.querySelector('.ed-form'), EP.draft);
 
-  $e('#ed-cancel').onclick = () => { EP.detailMode = 'view'; EP.editRow = null; EP.draft = null; renderDetail(row); };
+  $e('#ed-cancel').onclick = () => { EP.detailMode = 'view'; EP.editRow = null; EP.draft = null; EP.editShown = null; renderDetail(row); };
   $e('#ed-apply').onclick = () => applyForm(row, t);
   el.querySelectorAll('[data-goto-target]').forEach((b) => b.addEventListener('click', () => {
     /* 优先读输入框当前值：用选择器改过之后 data-goto-row 里的是旧值 */
@@ -691,9 +748,13 @@ function collectForm(t, row, base) {
     if (!el) continue;
     const raw = el.value;
 
-    // 控件里的文本和模板/原值一模一样 → 用户没动这个字段
-    if (orig !== undefined && orig !== null && typeof orig !== 'object' && raw === String(orig)) {
-      if (isNew) patch[f.name] = orig;   // 复制行要带上它，且保持原始 JSON 类型
+    /* 「有没有动」要跟表单显示值比（它可能带着队列里的改动）；
+       「改动是什么」要跟磁盘值比 —— 两者分开，第二次编辑才能既保留队列值、
+       又能在用户显式改回磁盘值时把队列里的改动撤掉。 */
+    const shownV = (!isNew && EP.editShown) ? EP.editShown[f.name] : orig;
+    if (shownV !== undefined && shownV !== null && typeof shownV !== 'object' && raw === String(shownV)) {
+      if (isNew) patch[f.name] = orig;                        // 复制行要带上它，且保持原始 JSON 类型
+      else if (!sameJson(orig, shownV)) patch[f.name] = shownV; // 队列里已有的改动继续保留
       continue;
     }
 
@@ -809,6 +870,7 @@ function applyForm(row, t) {
   EP.detailMode = 'view';
   EP.editRow = null;
   EP.draft = null;
+  EP.editShown = null;
   if (!Object.keys(patch).length) {
     // 什么都没改：不入队；如果这行之前排过队，这次改回原值就把队列里的那条撤掉
     if (EP.pending.delete(PK(t.name, row.RowName))) { updatePendingBar(); syncDelMarks(); }
@@ -864,11 +926,19 @@ async function deleteRowFlow(row) {
 }
 
 function undoDelRow(row) {
-  EP.pending.delete(PK(state.cur, row.RowName));
+  const key = PK(state.cur, row.RowName);
+  const old = EP.pending.get(key);
+  /* 撤销删除：如果这行在删除前还有未保存的字段改动，恢复成编辑项，而不是直接扔掉。 */
+  if (old && old.del && old.patch && Object.keys(old.patch).length) {
+    EP.pending.set(key, { table: state.cur, row: row.RowName, patch: old.patch, orig: old.orig || {} });
+    setStatus('已撤销删除（保留之前的字段改动）');
+  } else {
+    EP.pending.delete(key);
+    setStatus('已撤销删除');
+  }
   updatePendingBar();
   syncDelMarks();
   renderDetail(row);
-  setStatus('已撤销删除');
 }
 
 /* ---------------- 详情头部：编辑 / 删除 ---------------- */
@@ -946,6 +1016,9 @@ window.renderGrid = function () {
   syncDelMarks();
   syncCopyBtn();
 };
+
+/* 给 Git 面板用：切分支 / 拉取前要知道有没有未保存的改动 */
+window.EDIT = { hasPending: () => EP.pending.size > 0 };
 
 /* ---------------- 启动 ---------------- */
 document.addEventListener('DOMContentLoaded', () => {

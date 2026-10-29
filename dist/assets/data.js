@@ -10,6 +10,7 @@ const DS = (() => {
   let SEM = null;
   let fileList = [];
   let staleTables = { added: [], removed: [] };
+  let missingTables = [];   // 磁盘上没有对应文件的表（切到配置更少的分支时会出现）
   let current = null;
   const MAX_OPEN = 4;
 
@@ -51,16 +52,19 @@ const DS = (() => {
       removed: [...semSet].filter((n) => !onDisk.has(n)).sort(),
     };
     let done = 0;
+    const missing = [];
     const queue = names.slice();
     const worker = async () => {
       while (queue.length) {
         const n = queue.shift();
-        try { await ensureNotes(n); } catch (e) { /* 单表失败不影响整体 */ }
+        try { await ensureNotes(n); } catch (e) { missing.push(n); }
         done++;
         if (onProgress && done % 8 === 0) onProgress(done, names.length);
       }
     };
     await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    missingTables = missing.sort();
+    if (missingTables.length) console.warn('[缺表] 语义层有但磁盘上没有的表：', missingTables);
     if (onProgress) onProgress(names.length, names.length);
     return SEM;
   }
@@ -109,29 +113,32 @@ const DS = (() => {
     return map;
   }
 
+  /* 把一份 RowName->Notes 索引登记为当前真相，同时刷新侧栏用的行数/注释率。
+     语义层是构建期快照，行数与注释率会随配置改动过期；这里每次拿到新索引都回写。 */
+  function setNotes(base, map) {
+    notes.set(base, map);
+    const def = SEM && SEM.tables ? SEM.tables[base] : null;
+    if (!def) return map;
+    const keys = Object.keys(map);
+    let withNotes = 0;
+    for (const k of keys) {
+      const v = map[k];
+      if (v !== undefined && v !== null && String(v).trim()) withNotes++;
+    }
+    def.rowCount = keys.length;
+    def.notesRate = keys.length ? Math.round((withNotes / keys.length) * 100) : 0;
+    return map;
+  }
+
   async function ensureNotes(name) {
     const base = baseName(name);
-    if (notes.has(base)) return notes.get(base);
+    /* 命中缓存也回写一次统计：apply() 刚改过的那张表缓存是新的，
+       但语义层里的 rowCount/notesRate 可能还停在构建期的旧值。 */
+    if (notes.has(base)) return setNotes(base, notes.get(base));
     let data;
     if (files.has(base)) data = files.get(base).data;
     else data = JSON.parse(stripBom(await readText(base)));
-    const map = indexOf(data);
-    notes.set(base, map);
-    /* 顺手把统计回写语义层。语义层是构建期快照，行数/注释率会随配置改动过期；
-       而 init 为了算 Notes 索引本来就要读全文，这里零额外 IO 就能让侧栏数字保持真实。 */
-    const def = SEM && SEM.tables ? SEM.tables[base] : null;
-    if (def) {
-      const items = Array.isArray(data.Items) ? data.Items : [];
-      let withNotes = 0;
-      for (const it of items) {
-        if (!it || typeof it !== 'object') continue;
-        const nt = it.Notes === undefined || it.Notes === null ? '' : String(it.Notes).trim();
-        if (nt) withNotes++;
-      }
-      def.rowCount = items.length;
-      def.notesRate = items.length ? Math.round((withNotes / items.length) * 100) : 0;
-    }
-    return map;
+    return setNotes(base, indexOf(data));
   }
 
   function rowNames(name) {
@@ -268,8 +275,11 @@ const DS = (() => {
     const JE = window.JSONEDIT;
     let text = text0;
     const touched = [];
-    for (const op of ops) {
-      if (op.type === 'set') { text = JE.setRowFields(text, op.row, op.patch); touched.push(op.row); }
+    // 一次扫描处理所有 set：列编辑可能一次改几千格，逐个扫描会让 2.7MB 的表变成分钟级
+    const sets = ops.filter((o) => o.type === 'set');
+    if (sets.length) {
+      text = JE.setManyRows(text, sets.map((o) => ({ row: o.row, patch: o.patch })));
+      for (const o of sets) touched.push(o.row);
     }
     const paths = ops.filter((o) => o.type === 'setpath');
     if (paths.length) {
@@ -357,7 +367,18 @@ const DS = (() => {
 
   async function apply(name, ops) {
     const base = baseName(name);
-    const before = await textOf(base);
+    /* 保存前重新读一次磁盘：文件可能被 git pull / 切分支 / 别人改过。
+       拿打开时的旧全文做区间替换，会把那些改动整段覆盖掉 —— 先比对，不一致就拒绝写盘。 */
+    const disk = await readText(base);
+    const cached = files.has(base) ? files.get(base).text : null;
+    if (cached !== null && cached !== disk) {
+      files.delete(base); notes.delete(base); fills.delete(base); allCache.delete(base);
+      const err = new Error('磁盘上的 ' + base + '.json 已经变了（git pull / 切分支 / 别人改过）。' +
+        '为避免覆盖掉这些改动，本次没有写入。请重新打开这张表再改一次。');
+      err.conflict = true;
+      throw err;
+    }
+    const before = disk;
     const after = applyOpsText(before, ops).text;
     const check = validate(base, after);
     if (check.errors.length) throw new Error('校验未通过：' + check.errors.join('；'));
@@ -371,7 +392,7 @@ const DS = (() => {
       if (!res.ok || !r.ok) throw new Error((r && r.error) || '写入失败');
     }
     files.delete(base); notes.delete(base); fills.delete(base); allCache.delete(base);
-    try { notes.set(base, indexOf(JSON.parse(stripBom(after)))); } catch (e) { }
+    try { setNotes(base, indexOf(JSON.parse(stripBom(after)))); } catch (e) { }
     return { ok: true, table: base, backup: r.backup, opCount: ops.length, warnings: check.warnings };
   }
 
@@ -610,5 +631,6 @@ const DS = (() => {
     get sem() { return SEM; },
     get files() { return fileList; },
     get stale() { return staleTables; },
+    get missing() { return missingTables; },
   };
 })();

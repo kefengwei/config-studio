@@ -53,6 +53,21 @@ struct BackupInfo {
   id: String,
   size: u64,
   mtime: u64,
+  /// 从 id 前缀还原出来的写入时间（ISO 8601）。mtime 不可靠：
+  /// fs::copy 会保留源文件的 mtime，导致备份的 mtime 早于备份动作本身。
+  created_at: String,
+}
+
+/// 把 2026-10-28T02-32-43-863Z--Config_X.json 的前缀还原成 2026-10-28T02:32:43.863Z
+fn id_created_at(id: &str) -> String {
+  let head = id.split("--").next().unwrap_or("").trim_end_matches('Z');
+  if let Some((d, t)) = head.split_once('T') {
+    let p: Vec<&str> = t.split('-').collect();
+    if p.len() == 4 {
+      return format!("{}T{}:{}:{}.{}Z", d, p[0], p[1], p[2], p[3]);
+    }
+  }
+  String::new()
 }
 
 #[derive(Serialize)]
@@ -278,12 +293,15 @@ fn list_backups(app: AppHandle) -> Result<Vec<BackupInfo>, String> {
       continue;
     }
     out.push(BackupInfo {
+      created_at: id_created_at(&id),
       id,
       size: meta.len(),
       mtime: mtime_ms(&meta),
     });
   }
-  out.sort_by(|a, b| b.mtime.cmp(&a.mtime));
+  /* 按 id 倒序：id 前缀是 ISO 时间戳（去掉了 : 和 .），字典序就是时间序。
+     不能用 mtime —— fs::copy 保留源文件 mtime，列表第一条可能不是最近一次备份。 */
+  out.sort_by(|a, b| b.id.cmp(&a.id));
   Ok(out)
 }
 
@@ -382,53 +400,85 @@ fn git_dir(state: &State<'_, AppState>) -> Result<PathBuf, String> {
   Ok(configs_of(&root))
 }
 
+/* 这些命令都会起子进程，git pull / push 还可能等网络。同步命令跑在 Tauri 的主线程上，
+   一旦慢就是整个窗口无响应（连刷新的 git 状态都画不出来），所以统一 async + spawn_blocking。 */
+
 #[tauri::command]
-fn git_info(state: State<'_, AppState>) -> Result<git::GitInfo, String> {
-  Ok(git::info(&git_dir(&state)?))
+async fn git_info(state: State<'_, AppState>) -> Result<git::GitInfo, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::info(&dir))
+    .await
+    .map_err(|e| e.to_string())?)
 }
 
 #[tauri::command]
-fn git_status(state: State<'_, AppState>) -> Result<Vec<git::GitFile>, String> {
-  git::status(&git_dir(&state)?)
+async fn git_status(state: State<'_, AppState>) -> Result<Vec<git::GitFile>, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::status(&dir))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_branches(state: State<'_, AppState>) -> Result<Vec<git::GitBranch>, String> {
-  git::branches(&git_dir(&state)?)
+async fn git_branches(state: State<'_, AppState>) -> Result<Vec<git::GitBranch>, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::branches(&dir))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_checkout(state: State<'_, AppState>, branch: String) -> Result<String, String> {
-  git::checkout(&git_dir(&state)?, &branch)
+async fn git_checkout(state: State<'_, AppState>, branch: String) -> Result<String, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::checkout(&dir, &branch))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_diff(state: State<'_, AppState>, path: String) -> Result<String, String> {
-  git::diff(&git_dir(&state)?, &path)
+async fn git_diff(state: State<'_, AppState>, path: String) -> Result<String, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::diff(&dir, &path))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_log(state: State<'_, AppState>, limit: Option<usize>) -> Result<Vec<git::GitCommit>, String> {
-  git::log(&git_dir(&state)?, limit.unwrap_or(50))
+async fn git_log(state: State<'_, AppState>, limit: Option<usize>) -> Result<Vec<git::GitCommit>, String> {
+  let dir = git_dir(&state)?;
+  let n = limit.unwrap_or(50);
+  Ok(tauri::async_runtime::spawn_blocking(move || git::log(&dir, n))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_pull(state: State<'_, AppState>) -> Result<String, String> {
-  git::pull(&git_dir(&state)?)
+async fn git_pull(state: State<'_, AppState>) -> Result<String, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::pull(&dir))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_push(state: State<'_, AppState>) -> Result<String, String> {
-  git::push(&git_dir(&state)?)
+async fn git_push(state: State<'_, AppState>) -> Result<String, String> {
+  let dir = git_dir(&state)?;
+  Ok(tauri::async_runtime::spawn_blocking(move || git::push(&dir))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[tauri::command]
-fn git_commit(
+async fn git_commit(
   state: State<'_, AppState>,
   message: String,
   paths: Option<Vec<String>>,
 ) -> Result<String, String> {
-  git::commit(&git_dir(&state)?, &message, &paths.unwrap_or_default())
+  let dir = git_dir(&state)?;
+  let ps = paths.unwrap_or_default();
+  Ok(tauri::async_runtime::spawn_blocking(move || git::commit(&dir, &message, &ps))
+    .await
+    .map_err(|e| e.to_string())??)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

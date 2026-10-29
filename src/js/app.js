@@ -19,6 +19,8 @@ const state = {
   selRow: null,
   notes: {},
   searchTimer: null,
+  // 定位模式：搜索/筛选后自动把选中行落到结果上（默认开，偏好存 localStorage）
+  locate: (localStorage.getItem('wb.locate') || '1') !== '0',
 };
 
 /* ---------------- boot ---------------- */
@@ -43,33 +45,56 @@ async function init() {
   $('#table-count').textContent = state.tables.length + ' 张';
   renderTableList();
 
-  await preloadNotes();
+  const missing = await preloadNotes();
   const st = DS.stale || { added: [], removed: [] };
   const staleMsg = [];
   if (st.added.length) staleMsg.push('新增 ' + st.added.length + ' 张表未纳入语义层');
-  if (st.removed.length) staleMsg.push(st.removed.length + ' 张表已无文件');
+  /* removed 与 missing 常常是同一批表（切到配置更少的分支）。那种情况
+     「请重新构建」是错的建议 —— 少的是文件，不是语义层。 */
+  const removedOnly = st.removed.filter((n) => !missing.includes(n));
+  if (removedOnly.length) staleMsg.push(removedOnly.length + ' 张表已无文件');
+  const missMsg = missing.length
+    ? '　⚠ ' + missing.length + ' 张表的文件在当前分支上不存在（引用它们的格子会显示「目标不存在」）'
+    : '';
   setStatus(
-    '就绪 · ' + state.sem.stats.actuators + ' 个执行器 · ' + state.sem.stats.refFields + ' 个引用字段 · ' +
+    (missing.length ? '部分表缺失 · ' : '就绪 · ') + state.sem.stats.actuators + ' 个执行器 · ' + state.sem.stats.refFields + ' 个引用字段 · ' +
     state.sem.stats.enumsWithChinese + '/' + state.sem.stats.enums + ' 枚举有中文' +
-    (staleMsg.length ? '　⚠ ' + staleMsg.join('，') + '，请重新构建' : '')
+    (staleMsg.length ? '　⚠ ' + staleMsg.join('，') + '，请重新构建' : '') + missMsg
   );
   if (staleMsg.length) console.warn('[语义层过期]', st);
+  /* 默认/深链接指定的表可能在当前目录里没有文件（切到配置更少的分支时很常见）。
+     这种情况不要整条 init 抛错 —— 换一张确实存在的表，状态栏已经写明缺了多少张。 */
+  const missSet = new Set(missing);
+  const usable = state.tables.filter((t) => !missSet.has(t.name));
   const hash = decodeURIComponent(location.hash.slice(1)).replace(/^\//, '');
   if (hash) {
     const [raw, r] = hash.split('/');
     const t = resolveTableName(raw);
-    if (t) { await selectTable(t); if (r) await goTo(t, r); return; }
+    if (t && !missSet.has(t)) { await selectTable(t); if (r) await goTo(t, r); return; }
+    if (t) setStatus('这张表在当前配置目录里没有文件：' + t);
   }
-  await selectTable(state.tables[0].name);
+  if (!usable.length) {
+    setStatus('配置目录里没有可用的配置文件，请检查目录是否选对');
+    return;
+  }
+  await selectTable(usable[0].name);
 }
 
+/* 预加载「被引用表」的 RowName→Notes 索引，供引用 chip 显示中文名。
+   逐表 try/catch：切到配置更少的分支时，某些表在磁盘上根本不存在，
+   以前这里会让 Promise.all 整体 reject，导致 init 失败、状态栏永久红字、连表都不自动选。 */
 async function preloadNotes() {
   const need = new Set();
   for (const rt of Object.values(state.sem.refTargets)) need.add(rt.target);
   for (const a of Object.values(state.sem.actuators)) for (const p of Object.values(a.params || {})) if (p.target) need.add(p.target);
+  /* DS.init 已经知道哪些表读不到文件，这里直接合并，不用再猜一遍 */
+  const missing = new Set(DS.missing || []);
   await Promise.all([...need].filter((t) => state.sem.tables[t]).map(async (t) => {
-    state.notes[t] = await DS.notes(t);
+    try { state.notes[t] = await DS.notes(t); } catch (e) { missing.add(t); }
   }));
+  const arr = [...missing].sort();
+  state.missingTables = arr;
+  return arr;
 }
 
 const hasRow = (target, raw) => !!state.notes[target] &&
@@ -148,6 +173,36 @@ async function loadRows() {
   state.total = r.total;
   renderGrid();
   renderPfChips();
+  locateAfterLoad();
+}
+
+/* 定位模式：搜索/筛选结束后选中行落在哪一行。
+   规则 —— 当前选中行还在结果里就只恢复高亮（不打断你正在看的那行）；
+   不在结果里且搜索词非空、又没在编辑表单里，就直接选中第一条并滚过去。 */
+function locateAfterLoad() {
+  if (!state.rows.length) {
+    state.selRow = null;
+    renderDetail(null);
+    setStatus(state.q ? '搜索「' + state.q + '」没有匹配的行' : '这张表没有匹配的行');
+    return;
+  }
+  const editing = typeof EP !== 'undefined' && EP && (EP.detailMode === 'edit' || EP.detailMode === 'new');
+  const keep = !!state.selRow && state.rows.some((r) => r.RowName === state.selRow);
+  if (!keep && !editing) {
+    if (state.q && state.locate) applySelection(state.rows[0]);
+    else if (state.selRow) { state.selRow = null; markSelection(); renderDetail(null); }
+  }
+  reportLocate();
+}
+
+/* 状态栏告诉用户「现在停在命中的第几个」 */
+function reportLocate() {
+  if (!state.q) return;
+  const i = state.selRow ? state.rows.findIndex((r) => r.RowName === state.selRow) : -1;
+  const abs = i >= 0 ? state.offset + i + 1 : 0;
+  setStatus('搜索「' + state.q + '」· 命中 ' + state.total + ' 行'
+    + (abs ? ' · 当前第 ' + abs + ' 个' : '')
+    + (state.locate ? '（↑↓ 逐个切换）' : '（定位已关，↑↓ 仍可用）'));
 }
 
 /* ---------------- 按属性筛选（行本身的字段，不是列编辑里那种展开列） ---------------- */
@@ -376,7 +431,18 @@ function renderGrid() {
   $('#page-info').textContent = from + '–' + Math.min(state.offset + state.limit, state.total) + ' / ' + state.total;
   $('#prev').disabled = state.offset <= 0;
   $('#next').disabled = state.offset + state.limit >= state.total;
+  markSelection();
   sfSync();
+}
+
+/* 重绘后把选中行的样式补回来（tbody 是整体重建的，.sel 会丢） */
+function markSelection() {
+  document.querySelectorAll('#grid-body tr.sel').forEach((x) => x.classList.remove('sel'));
+  if (!state.selRow) return;
+  const i = state.rows.findIndex((r) => r.RowName === state.selRow);
+  if (i < 0) return;
+  const tr = document.querySelector('#grid-body tr[data-i="' + (state.offset + i) + '"]');
+  if (tr) tr.classList.add('sel');
 }
 
 function cellText(field, row) {
@@ -552,6 +618,32 @@ $('#next').addEventListener('click', () => { state.offset += state.limit; loadRo
 $('#row-search').addEventListener('input', (e) => {
   clearTimeout(state.searchTimer);
   state.searchTimer = setTimeout(() => { state.q = e.target.value.trim(); state.offset = 0; loadRows(); }, 250);
+});
+/* 搜索框里也能逐个跳：不用先点表格再按方向键 */
+$('#row-search').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+  // 正在编辑就不能切行：切行会退出表单，没应用的内容会丢
+  if (typeof EP !== 'undefined' && EP && (EP.detailMode === 'edit' || EP.detailMode === 'new')) {
+    if (e.key !== 'Enter') e.preventDefault();
+    setStatus('正在编辑这一行：先「应用修改」或「取消」，再用 ↑↓ 切换');
+    return;
+  }
+  e.preventDefault();
+  if (e.key === 'Enter' && state.q !== $('#row-search').value.trim()) {
+    // 防抖还没到点，先立即搜一次
+    clearTimeout(state.searchTimer);
+    state.q = $('#row-search').value.trim();
+    state.offset = 0;
+    loadRows().then(() => reportLocate());
+    return;
+  }
+  if (moveSelection(e.key === 'ArrowUp' ? -1 : 1)) reportLocate();
+});
+$('#locate').checked = state.locate;
+$('#locate').addEventListener('change', (e) => {
+  state.locate = !!e.target.checked;
+  localStorage.setItem('wb.locate', state.locate ? '1' : '0');
+  if (state.locate) { locateAfterLoad(); reportLocate(); }
 });
 
 /* ---------------- 搜索框：清除按钮 / Ctrl+F ---------------- */
