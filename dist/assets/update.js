@@ -22,7 +22,9 @@
   const invoke = T.core.invoke;
 
   const START_DELAY = 3000;
-  const CHECK_TIMEOUT = 20000;
+  const CHECK_TIMEOUT = 30000;
+  // 下载总时长上限：国内经代理约 200KB/s，7.7MB 要 40s 以上，默认超时会误报失败
+  const DOWNLOAD_TIMEOUT = 600000;
   const INTERVAL_MS = 4 * 60 * 60 * 1000;
   const DL_PAGE = 'https://github.com/kefengwei/config-studio/releases/latest';
 
@@ -110,13 +112,24 @@
   }
 
   /* ---------------- 检查 ---------------- */
+  // 国内连 GitHub 抖一下很常见，失败后自动再试一次（多等 1.2 秒，成功率明显上升）
+  async function invokeCheck() {
+    try {
+      return await invoke('plugin:updater|check', { timeout: CHECK_TIMEOUT });
+    } catch (e) {
+      say('第一次检查失败，正在重试…');
+      await new Promise(function (r) { setTimeout(r, 1200); });
+      return await invoke('plugin:updater|check', { timeout: CHECK_TIMEOUT });
+    }
+  }
+
   async function check(manual) {
     if (busy || checking) return;
     checking = true;
     if (manual) say('正在检查更新…');
     let meta = null;
     try {
-      meta = await invoke('plugin:updater|check', { timeout: CHECK_TIMEOUT });
+      meta = await invokeCheck();
     } catch (e) {
       checking = false;
       if (manual) {
@@ -176,6 +189,7 @@
       await invoke('plugin:updater|download_and_install', {
         rid: meta.rid,
         onEvent: ch,
+        timeout: DOWNLOAD_TIMEOUT,
         restartAfterInstall: true
       });
       // Windows 上走到这里一般安装器已经拉起来了，进程随后退出；没退出也给个说明
@@ -204,9 +218,23 @@
     setInterval(function () { check(false); }, INTERVAL_MS);
   }
 
+  /* 给设置面板用的连通性探测：不弹窗、不写状态栏，只回结果。
+     设置面板保存代理后立刻调它一次，用户能当场知道通没通。 */
+  async function probe() {
+    try {
+      // 复用带重试的版本：国内第一次连 GitHub 常常要 20-40 秒，
+      // 单发一次 15 秒超时会把「能通但慢」误报成失败。
+      const meta = await invokeCheck();
+      return { ok: true, version: meta ? meta.version : null, current: meta ? meta.currentVersion : null };
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) };
+    }
+  }
+
   window.UPD = {
     start: start,
     check: function () { return check(true); },
+    probe: probe,
     get busy() { return busy; }
   };
 })();

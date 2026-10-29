@@ -43,6 +43,10 @@ try {
   <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 3.5v11.5"/><path d="m7.2 10.6 4.8 4.8 4.8-4.8"/><path d="M4.5 20.5h15"/>
   </symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.2"/>
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>
+  </symbol>
   <symbol id="i-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="6.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="8" r="2.5"/>
     <path d="M6.5 8v8M17.5 10.5c0 3-2.5 4-5 4.5"/>
@@ -73,6 +77,9 @@ try {
     <span class="flex items-center"><span class="dot num"></span>数值</span>
   </div>
 
+  <button class="theme-btn shrink-0" id="set-btn" title="设置（网络代理）" aria-label="设置">
+    <svg aria-hidden="true"><use href="#i-settings"></use></svg>
+  </button>
   <button class="theme-btn shrink-0" id="upd-btn" title="检查更新" aria-label="检查更新">
     <svg aria-hidden="true"><use href="#i-download"></use></svg>
   </button>
@@ -175,6 +182,7 @@ try {
 <script src="/assets/ref-picker.js"></script>
 <script src="/assets/layout.js"></script>
 <script src="/assets/update.js"></script>
+<script src="/assets/settings.js"></script>
 <script src="/assets/app.js"></script>
 <script src="/assets/struct-editor.js"></script>
 <script src="/assets/edit.js"></script>

@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-29T08:58:08.432Z",
+ "generatedAt": "2026-10-29T14:51:53.215Z",
  "source": {
   "configDir": "configs",
   "schemaDir": "json-schemas",
@@ -7,7 +7,7 @@
  },
  "stats": {
   "tables": 95,
-  "rows": 7620,
+  "rows": 7621,
   "actuators": 52,
   "polyEntries": 127,
   "refFields": 60,
@@ -22,7 +22,9 @@
    "3": "抽大奖",
    "4": "全服进度",
    "5": "签到",
-   "6": "购买/轮询抽奖"
+   "6": "购买/轮询抽奖",
+   "7": "角色限时礼包",
+   "8": "合成棋子"
   },
   "BuildingPutType": {
    "0": "BuildingPutTypeNone",
@@ -337,9 +339,9 @@
   },
   "ProductRowName": {
    "target": "Config_Product",
-   "confidence": 0.987,
-   "hits": 155,
-   "total": 157,
+   "confidence": 0.975,
+   "hits": 156,
+   "total": 160,
    "reason": "naming",
    "sample": [
     "Product_LimitedTimePass_01",
@@ -1255,7 +1257,7 @@
      "desc": "物品行RowName",
      "target": "Config_CatalogItem",
      "confidence": 1,
-     "samples": 174
+     "samples": 173
     },
     "Count": {
      "type": "integer",
@@ -1821,14 +1823,14 @@
      "desc": "PlayerCustom的配置行",
      "target": "Config_PlayerCustom",
      "confidence": 1,
-     "samples": 4
+     "samples": 5
     },
     "StartTime": {
      "type": [
       "null",
       "string"
      ],
-     "desc": "指定开始时间. (注意: 此开始时间无需配置. 应用程序会在执行时获取当天的重置时间,再加上一天作为开始时间. 通常用于排行榜结算时的时间绑定.)",
+     "desc": "开始时间(UTC)，非必填。留空时由服务端自动确定：走预执行（如排行榜结算）时取「次日重置时刻」生效；未预执行、到执行器里才确定时取「当天重置时刻」。填写后一律按所填的绝对时间执行，不再自动推算。通常用于排行榜结算时的时间绑定。",
      "target": null
     },
     "Duration": {
@@ -5932,9 +5934,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6053,9 +6055,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6163,9 +6165,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6280,9 +6282,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6384,9 +6386,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6488,9 +6490,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -6592,9 +6594,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "关联的商品行"
     },
@@ -8807,9 +8809,9 @@
      "name": "ProductRowName",
      "kind": "ref",
      "target": "Config_Product",
-     "confidence": 0.987,
-     "hits": 155,
-     "total": 157,
+     "confidence": 0.975,
+     "hits": 156,
+     "total": 160,
      "implicit": false,
      "desc": "绑定的商品RowName,没有绑定为每日免费"
     },
@@ -8841,6 +8843,20 @@
      "name": "ResonancePrivilegeCardRowNames",
      "kind": "primarray",
      "desc": "特权卡共鸣前置列表：列表内特权卡全部激活后，自动激活此共鸣特权卡并领取固定奖励；激活时间取当天刷新时间，过期时间=激活时间+持续时间；配置后此卡不再作为每日免费特权卡"
+    },
+    {
+     "name": "FollowPrivilegeCardRowName",
+     "kind": "nullable",
+     "types": [
+      "null",
+      "string"
+     ],
+     "desc": "从属特权卡：该卡激活时本卡不激活并改为发放折算奖励；该卡未激活时以本卡持续时间激活该卡"
+    },
+    {
+     "name": "ConvertActuators",
+     "kind": "actuators",
+     "desc": "折算奖励：从属特权卡已激活时发放此奖励"
     }
    ],
    "extraKeys": [],
@@ -8849,8 +8865,8 @@
   },
   "Config_Product": {
    "name": "Config_Product",
-   "rowCount": 172,
-   "notesFilled": 172,
+   "rowCount": 173,
+   "notesFilled": 173,
    "notesRate": 100,
    "fields": [
     {

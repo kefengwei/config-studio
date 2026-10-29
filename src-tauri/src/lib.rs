@@ -189,6 +189,62 @@ fn write_recent(app: &AppHandle, list: &[RecentDir]) -> Result<(), String> {
   fs::write(&f, txt).map_err(|e| e.to_string())
 }
 
+/* ---------------- 设置（目前只有网络代理） ----------------
+   为什么代理要放在 Rust 侧设环境变量：
+   tauri-plugin-updater 的 check / download 由 Rust 发请求，它虽然有个 proxy 参数，
+   但实测传了不生效（请求仍然直连）。reqwest 在每次新建 client 时会读 HTTPS_PROXY，
+   所以「写环境变量」是唯一能让插件走代理的办法。见 apply_proxy_env 的注释。 */
+#[derive(Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Settings {
+  /// 更新请求用的 HTTP(S) 代理；空串表示直连
+  #[serde(default)]
+  proxy: String,
+}
+
+fn settings_file(app: &AppHandle) -> Result<PathBuf, String> {
+  let d = app.path().app_config_dir().map_err(|e| e.to_string())?;
+  fs::create_dir_all(&d).map_err(|e| e.to_string())?;
+  Ok(d.join("settings.json"))
+}
+
+fn read_settings(app: &AppHandle) -> Settings {
+  let Ok(f) = settings_file(app) else { return Settings::default() };
+  let Ok(txt) = fs::read_to_string(&f) else { return Settings::default() };
+  serde_json::from_str::<Settings>(&txt).unwrap_or_default()
+}
+
+/// 把代理写进本进程的环境变量。
+/// reqwest 在 ClientBuilder::build() 时读 HTTPS_PROXY / HTTP_PROXY（大小写都认），
+/// 插件每检查一次、下载一次都会新建 client，所以这里改完下一次请求就生效，不用重启。
+fn apply_proxy_env(proxy: &str) {
+  let p = proxy.trim();
+  for k in ["HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"] {
+    if p.is_empty() {
+      std::env::remove_var(k);
+    } else {
+      std::env::set_var(k, p);
+    }
+  }
+  if !p.is_empty() && std::env::var_os("NO_PROXY").is_none() {
+    std::env::set_var("NO_PROXY", "localhost,127.0.0.1,::1");
+  }
+}
+
+#[tauri::command]
+fn get_settings(app: AppHandle) -> Settings {
+  read_settings(&app)
+}
+
+#[tauri::command]
+fn set_settings(app: AppHandle, settings: Settings) -> Result<(), String> {
+  let f = settings_file(&app)?;
+  let txt = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+  fs::write(&f, txt).map_err(|e| e.to_string())?;
+  apply_proxy_env(&settings.proxy);
+  Ok(())
+}
+
 fn current_root(state: &State<'_, AppState>) -> Result<PathBuf, String> {
   let guard = state.root.lock().map_err(|_| "内部状态锁失败".to_string())?;
   guard.clone().ok_or_else(|| "还没有选择配置目录".to_string())
@@ -563,6 +619,9 @@ pub fn run() {
       // 自动更新插件：注册后前端可用 plugin:updater|check 等命令
       #[cfg(desktop)]
       app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+      // 恢复上次保存的代理：必须在第一次检查更新（启动后 3 秒）之前生效
+      let saved = read_settings(&app.handle());
+      apply_proxy_env(&saved.proxy);
       Ok(())
     })
     .manage(AppState::default())
@@ -588,7 +647,9 @@ pub fn run() {
       git_log,
       git_pull,
       git_push,
-      git_commit
+      git_commit,
+      get_settings,
+      set_settings
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
