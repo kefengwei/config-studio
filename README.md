@@ -332,6 +332,24 @@ npm run tauri:build  # 出桌面版 exe
 - 表头两行：中文名在上、JSON 字段名在下，鼠标悬停出完整字段说明。
 - 滚动条颜色跟随主题（`scrollbar-color` + `::-webkit-scrollbar`），暗色下不会跳出一条浅色滑轨。
 
+### 行与行之间怎么分开
+
+密集表格和编辑表单里，光靠 1px 分隔线（对白面板只有 1.1:1）分不清相邻两行。现在用**交替行底色**拉开相邻行，色差压到 7% 左右，能看出分带但不抢文字的注意力：
+
+| 位置 | 亮色 | 暗色 |
+|---|---|---|
+| 偶数行 | `#f2f5f9`（`--row-alt`） | `#1b222c` |
+| 悬停行 | `#f6f8fa`（`--row-hover`） | `#1c2128` |
+| 选中行 | `#e4e9ef`（`--sel-bg`） | `#21262d` |
+
+三处生效：
+
+1. **主表格** `.cfg-grid tbody tr:nth-child(even) td`
+2. **右侧详情 / 编辑表单的字段行** `.f-row:nth-child(even)`
+3. **编辑表单里的数组项卡片** `.se-list > .se-item:nth-child(even)`（只对直接子项生效，嵌套时不会深浅翻来覆去）
+
+层叠顺序是写死的：斑马纹在 [components.css](src/styles/components.css) 里写在 `hover` 和 `.sel` **之前**，所以悬停和选中永远盖住斑马纹，不会出现「选中行看不出选中」。
+
 ## 字体：Maple Mono NF CN，随包分发
 
 界面统一用 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（v7.9）。
