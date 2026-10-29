@@ -14,9 +14,18 @@ const step = (msg) => console.log('· ' + msg);
 
 fs.mkdirSync(ASSETS, { recursive: true });
 
-/* 1. 语义层：C# 定义 + 配置数据 + 枚举 → semantics.json */
+/* 1. 语义层：C# 定义 + 配置数据 + 枚举 → semantics.json
+ * 需要能读到配置仓库（config-dir.txt / DR_CONFIG_REPO）。
+ * 语义层在运行时也会直接用 json-schemas 重建，这份只是内置回退快照；
+ * 所以 CI 上没有配置仓库时沿用仓库里已提交的那份，不中断构建。 */
 step('生成语义层 semantics.json');
-execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'build-semantics.mjs')], { stdio: 'inherit', cwd: ROOT });
+try {
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'build-semantics.mjs')], { stdio: 'inherit', cwd: ROOT });
+} catch (e) {
+  const fallback = path.join(ASSETS, 'semantics.json');
+  if (!process.env.CI || !fs.existsSync(fallback)) throw e;
+  console.warn('⚠ 没有配置仓库，沿用已提交的 dist/assets/semantics.json（运行时仍会从 json-schemas 重建语义层）');
+}
 
 /* 2. 样式：Tailwind 4 */
 step('构建 Tailwind CSS');
