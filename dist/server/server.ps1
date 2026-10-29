@@ -1,4 +1,4 @@
-﻿<#
+<#
   配置工作台 · 本地服务（Windows PowerShell 5.1，零依赖）
   职责只有三件：供静态文件、读配置原文、写配置原文（带备份）。
   JSON 解析 / 编辑 / 校验 / diff 全部在浏览器里完成。
@@ -250,6 +250,20 @@ function Handle-Request($req) {
     [void]$sb.Append('}')
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($sb.ToString())
     return @{ code = 200; raw = $bytes; ctype = 'application/json; charset=utf-8' }
+  }
+
+  if ($method -eq 'GET' -and $path -eq '/api/schema-stamp') {
+    # 语义层只在启动时算一次；前端拿这个指纹判断后端有没有重新导出过 schema。
+    $schemaDir = Join-Path (Split-Path -Parent $ConfigDir) 'json-schemas'
+    if (-not (Test-Path -LiteralPath $schemaDir)) { return @{ code = 200; json = @{ ok = $true; count = 0; max = 0 } } }
+    $count = 0
+    [long]$max = 0
+    foreach ($f in (Get-ChildItem -LiteralPath $schemaDir -Filter '*.json')) {
+      $count++
+      $t = ([DateTimeOffset]$f.LastWriteTimeUtc).ToUnixTimeMilliseconds()
+      if ($t -gt $max) { $max = $t }
+    }
+    return @{ code = 200; json = @{ ok = $true; count = $count; max = $max } }
   }
 
   if ($method -eq 'GET' -and $path -eq '/api/file') {

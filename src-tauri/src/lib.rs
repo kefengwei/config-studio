@@ -290,6 +290,38 @@ fn read_schemas(state: State<'_, AppState>) -> Result<String, String> {
   Ok(out)
 }
 
+/// json-schemas 目录的「指纹」：文件数 + 最新修改时间。
+/// 语义层只在启动时算一次，前端拿它就能判断后端有没有重新导出过 schema。
+#[tauri::command]
+fn schema_stamp(state: State<'_, AppState>) -> Result<(u64, u64), String> {
+  let root = current_root(&state)?;
+  let mut dir = root.join("json-schemas");
+  if !dir.is_dir() {
+    if let Some(p) = root.parent().map(|p| p.join("json-schemas")) {
+      if p.is_dir() {
+        dir = p;
+      }
+    }
+  }
+  let mut count = 0u64;
+  let mut max = 0u64;
+  if let Ok(rd) = fs::read_dir(&dir) {
+    for e in rd.flatten() {
+      let name = e.file_name().to_string_lossy().to_lowercase();
+      if !name.ends_with(".json") {
+        continue;
+      }
+      let Ok(meta) = e.metadata() else { continue };
+      if !meta.is_file() {
+        continue;
+      }
+      count += 1;
+      max = max.max(mtime_ms(&meta));
+    }
+  }
+  Ok((count, max))
+}
+
 #[tauri::command]
 fn read_file(state: State<'_, AppState>, name: String) -> Result<String, String> {
   let root = current_root(&state)?;
@@ -533,6 +565,7 @@ pub fn run() {
       list_tables,
       read_file,
       read_schemas,
+      schema_stamp,
       save_file,
       list_backups,
       undo,

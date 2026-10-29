@@ -11,6 +11,10 @@ const DS = (() => {
   let semMode = 'builtin';   // 'schema' = 运行时从 json-schemas 现算；'builtin' = 内嵌 semantics.json
   let schemasRaw = null;
   let fileList = [];
+  let schemaStampAt = null;   // init 时 json-schemas 的 [文件数, 最新 mtime]
+  /* 磁盘上变了、但还没被重新读取的表。一直留着，直到 invalidate() 把它们清掉 ——
+     否则「别的表变了」的提示只出现一次，用户忘了按 R 就再也看不到了。 */
+  const dirtyTables = new Set();
   let staleTables = { added: [], removed: [] };
   let aggScan = false;       // 只在 init 扫描那 6 路并发里聚合数据，之后不再重复遍历
   /* 数据聚合：schema 模式的语义层要靠它推断引用目标与表元数据。
@@ -42,6 +46,18 @@ const DS = (() => {
     const res = await fetch('/api/schemas');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.text();
+  }
+
+  /* json-schemas 目录的指纹：[文件数, 最新修改时间]。
+     语义层只在 init 时算一次，靠它判断后端有没有重新导出过 schema。 */
+  async function schemaStamp() {
+    if (invoke) {
+      try { return await invoke('schema_stamp'); } catch (e) { return null; }
+    }
+    try {
+      const r = await fetch('/api/schema-stamp').then((x) => x.json());
+      return [r.count, r.max];
+    } catch (e) { return null; }
   }
 
   const fileName = (n) => (/\.json$/.test(n) ? n : n + '.json');
@@ -105,6 +121,7 @@ const DS = (() => {
        老仓库没有 json-schemas/ 时回落到构建期产物 assets/semantics.json。 */
     let schemas = null;
     try {
+      schemaStampAt = await schemaStamp();
       const txt = await readSchemasText();
       const parsed = JSON.parse(stripBom(txt));
       if (parsed && Object.keys(parsed).length) schemas = parsed;
@@ -174,6 +191,8 @@ const DS = (() => {
 
   async function open(name) {
     const base = baseName(name);
+    /* 磁盘上变过的表不许用内存里的旧副本：切过去就是最新的 */
+    if (dirtyTables.has(base)) invalidate(base);
     if (files.has(base)) {
       const hit = files.get(base);
       files.delete(base);
@@ -224,6 +243,7 @@ const DS = (() => {
 
   async function ensureNotes(name) {
     const base = baseName(name);
+    if (dirtyTables.has(base)) invalidate(base);
     /* 命中缓存也回写一次统计：apply() 刚改过的那张表缓存是新的，
        但语义层里的 rowCount/notesRate 可能还停在构建期的旧值。 */
     if (notes.has(base)) return setNotes(base, notes.get(base));
@@ -234,6 +254,49 @@ const DS = (() => {
       try { aggregateItems(Array.isArray(data.Items) ? data.Items : [], base); } catch (e) { }
     }
     return setNotes(base, indexOf(data));
+  }
+
+  /* 丢掉一张表在内存里的全部副本，让下一次读取真的落到磁盘上。
+     R 键（重新加载当前表）走这里；外部改了文件、git pull 之后手动刷新也走这里。 */
+  function invalidate(name) {
+    const base = baseName(name);
+    files.delete(base);
+    notes.delete(base);
+    fills.delete(base);
+    allCache.delete(base);
+    dirtyTables.delete(base);   // 这张表已经重新读过，不该再被提示
+    return base;
+  }
+
+  /* 磁盘上变了、还没被重新读的表（给状态栏提示用） */
+  function diskDirty() { return [...dirtyTables]; }
+
+  /* 磁盘上的配置文件有没有变：拿 listTables 的 mtime/size 跟 init 时的快照比。
+     只做元数据比对、不读文件内容，95 张表也就一次目录遍历。
+     Config_X.<渠道>.json 这种增量文件不算「表」，只统计基表。 */
+  async function checkDisk() {
+    const list = await listTables();
+    const now = list.tables || [];
+    const prev = new Map(fileList.map((f) => [f.name, f]));
+    const next = new Map(now.map((f) => [f.name, f]));
+    const isBase = (n) => baseName(n).indexOf('.') === -1;
+    const changed = [];
+    for (const [name, f] of next) {
+      const p = prev.get(name);
+      if (!p || !isBase(name)) continue;
+      if (p.mtime !== f.mtime || p.size !== f.size) {
+        changed.push(baseName(name));
+        dirtyTables.add(baseName(name));
+      }
+    }
+    const added = [...next.keys()].filter((n) => !prev.has(n) && isBase(n)).map(baseName);
+    const removed = [...prev.keys()].filter((n) => !next.has(n) && isBase(n)).map(baseName);
+    added.forEach((n) => dirtyTables.add(n));
+    removed.forEach((n) => dirtyTables.add(n));
+    fileList = now;
+    /* pending 是累积的「还没重新读过的表」；本次新增的放 changed/added/removed。
+       调用方按 pending 提示，才不会因为快照已更新而丢掉提醒。 */
+    return { changed, added, removed, pending: [...dirtyTables] };
   }
 
   function rowNames(name) {
@@ -467,7 +530,7 @@ const DS = (() => {
     const disk = await readText(base);
     const cached = files.has(base) ? files.get(base).text : null;
     if (cached !== null && cached !== disk) {
-      files.delete(base); notes.delete(base); fills.delete(base); allCache.delete(base);
+      invalidate(base);
       const err = new Error('磁盘上的 ' + base + '.json 已经变了（git pull / 切分支 / 别人改过）。' +
         '为避免覆盖掉这些改动，本次没有写入。请重新打开这张表再改一次。');
       err.conflict = true;
@@ -486,7 +549,9 @@ const DS = (() => {
       r = await res.json();
       if (!res.ok || !r.ok) throw new Error((r && r.error) || '写入失败');
     }
-    files.delete(base); notes.delete(base); fills.delete(base); allCache.delete(base);
+    invalidate(base);
+    /* 自己刚写完的文件不该被下次 focus 当成「外部改动」：顺手刷新一次快照 */
+    try { fileList = (await listTables()).tables || fileList; } catch (e) { }
     try { setNotes(base, indexOf(JSON.parse(stripBom(after)))); } catch (e) { }
     return { ok: true, table: base, backup: r.backup, opCount: ops.length, warnings: check.warnings };
   }
@@ -511,7 +576,8 @@ const DS = (() => {
       r = await res.json();
       if (!res.ok || !r.ok) throw new Error((r && r.error) || '还原失败');
     }
-    files.delete(r.table); notes.delete(r.table); fills.delete(r.table); allCache.delete(r.table);
+    invalidate(r.table);
+    try { fileList = (await listTables()).tables || fileList; } catch (e) { }
     return r;
   }
 
@@ -720,12 +786,13 @@ const DS = (() => {
   }
 
   return {
-    init, open, page, fill, search, refs, preview, apply, backups, undo, column, ping,
+    init, open, page, fill, search, refs, preview, apply, backups, undo, column, ping, invalidate, checkDisk, diskDirty, schemaStamp,
     findRefsTo: findRefsTo, loadAll: loadAll,
     notes: ensureNotes, rowNames, hasRow, labelOf, textOf, matchRowField,
     get sem() { return SEM; },
     get semMode() { return semMode; },
     get files() { return fileList; },
+    get schemaStampAt() { return schemaStampAt; },
     get stale() { return staleTables; },
     get missing() { return missingTables; },
   };

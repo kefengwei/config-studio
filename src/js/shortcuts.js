@@ -115,11 +115,14 @@
   async function reloadTable() {
     if (!state.cur) return;
     status('重新加载 ' + state.cur + '…');
+    /* 先丢掉内存里的副本：不加这一步，DS.notes 会命中缓存直接返回，
+       按 R 只是重画界面，外部改过的文件读不进来。 */
+    try { DS.invalidate(state.cur); } catch (e) {}
     try { await DS.notes(state.cur); } catch (e) {}
     state.tables = Object.values(state.sem.tables).sort(function (a, b) { return b.rowCount - a.rowCount; });
     renderTableList();
     await loadRows();
-    status('已重新加载 ' + state.cur);
+    status('已从磁盘重新加载 ' + state.cur);
   }
 
   async function undoLast() {

@@ -1304,12 +1304,71 @@ document.addEventListener('keydown', (e) => {
   if (moved) e.preventDefault();
 });
 
+/* ---------------- 磁盘变化检测 ---------------- */
+/* git pull / 别人改文件之后不用重开工作台：切回窗口时比对一次 mtime 与大小。
+   当前表变了就直接从磁盘重载；别的表变了只在状态栏提示，不打断正在做的事。 */
+let diskCheckedAt = 0;
+let semNotified = false;   // schema 变化的提醒只弹一次
+async function checkDiskChanges() {
+  const t = Date.now();
+  if (t - diskCheckedAt < 800) return;          // 焦点来回抖时不要连环查目录
+  diskCheckedAt = t;
+  if (!state.cur) return;
+  if (document.getElementById('ed-apply')) return;               // 正在编辑
+  if (window.EP && EP.pending && EP.pending.size) return;        // 有未保存的改动
+  /* schema 只在启动时读一次，改了必须重开工作台；这里只负责提醒一次 */
+  try {
+    const st = await DS.schemaStamp();
+    const at = DS.schemaStampAt;
+    if (st && at && !semNotified && (st[0] !== at[0] || st[1] !== at[1])) {
+      semNotified = true;
+      await uiAlert('json-schemas 更新过了',
+        'json-schemas 目录在上次启动之后有更新（现在共 ' + st[0] + ' 个 schema 文件）。\n\n' +
+        '语义层（字段说明、枚举中文、执行器参数）是启动时算好的，现在显示的还是旧的。\n' +
+        '关掉工作台重开一次就会重新算。');
+    }
+  } catch (e) {}
+  let r;
+  try { r = await DS.checkDisk(); } catch (e) { return; }
+  /* pending 是累积的：别的表变了之后一直留着，直到那张表被重新读过。
+     只用本次的 changed/removed 的话，提示会在下一次 focus 就消失。 */
+  const dirty = r.pending || [...new Set([].concat(r.changed, r.added, r.removed))];
+  if (!dirty.length) return;
+  const cur = state.cur;
+  if (dirty.indexOf(cur) >= 0) {
+    setStatus('磁盘上的 ' + cur + '.json 变了，正在重新加载…');
+    try {
+      DS.invalidate(cur);
+      state.notes[cur] = await DS.notes(cur);
+      renderTableList();
+      await loadRows();
+      const row = state.selRow ? state.rows.find((x) => x.RowName === state.selRow) : null;
+      if (row) renderDetail(row);
+      else { state.selRow = null; renderDetail(null); }
+      setStatus('已从磁盘重新加载 ' + cur + '（外部改动）');
+    } catch (e) {
+      setStatus('重新加载失败：' + (e.message || e));
+    }
+    return;
+  }
+  setStatus(dirty.length + ' 张配置文件在磁盘上变了：' + dirty.slice(0, 3).join('、') +
+    (dirty.length > 3 ? ' …' : '') + '　切到那张表或按 R 重新加载');
+}
+
+/* 只挂一次：init 成功后由 startApp 调用 */
+function watchDisk() {
+  if (watchDisk.done) return;
+  watchDisk.done = true;
+  window.addEventListener('focus', () => { checkDiskChanges(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDiskChanges(); });
+}
+
 function setStatus(s) { $('#status').textContent = s; }
 pfInit();
 /* 桌面版启动器（boot.js）要先让用户选配置目录，选好后才调 __START_APP__ */
 function startApp() {
   init()
-    .then(() => { if (window.GIT && window.GIT.refresh) window.GIT.refresh(); })
+    .then(() => { watchDisk(); if (window.GIT && window.GIT.refresh) window.GIT.refresh(); })
     .catch((e) => { setStatus('加载失败: ' + e.message); console.error(e); });
 }
 window.__START_APP__ = startApp;
