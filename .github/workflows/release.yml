@@ -34,6 +34,10 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
+      - name: 切回官方 crates.io 源（仓库里的 .cargo 配的是国内镜像，海外 runner 连不上）
+        shell: bash
+        run: rm -f .cargo/config.toml
+
       - name: 装前端依赖
         run: npm ci
 
