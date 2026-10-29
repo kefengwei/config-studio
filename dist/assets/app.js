@@ -47,8 +47,13 @@ async function init() {
 
   const missing = await preloadNotes();
   const st = DS.stale || { added: [], removed: [] };
+  const schemaMode = DS.semMode === 'schema';
   const staleMsg = [];
-  if (st.added.length) staleMsg.push('新增 ' + st.added.length + ' 张表未纳入语义层');
+  /* schema 模式下没有「语义层过期」这回事：语义层是现算的，added 表示这批表
+     后端没有导出 schema（字段说明会缺，但表照样能打开编辑）。 */
+  if (st.added.length) staleMsg.push(schemaMode
+    ? st.added.length + ' 张表没有 schema 定义（后端没导出，侧栏不列出）：' + st.added.slice(0, 3).join(', ') + (st.added.length > 3 ? ' …' : '')
+    : '新增 ' + st.added.length + ' 张表未纳入语义层');
   /* removed 与 missing 常常是同一批表（切到配置更少的分支）。那种情况
      「请重新构建」是错的建议 —— 少的是文件，不是语义层。 */
   const removedOnly = st.removed.filter((n) => !missing.includes(n));
@@ -59,9 +64,9 @@ async function init() {
   setStatus(
     (missing.length ? '部分表缺失 · ' : '就绪 · ') + state.sem.stats.actuators + ' 个执行器 · ' + state.sem.stats.refFields + ' 个引用字段 · ' +
     state.sem.stats.enumsWithChinese + '/' + state.sem.stats.enums + ' 枚举有中文' +
-    (staleMsg.length ? '　⚠ ' + staleMsg.join('，') + '，请重新构建' : '') + missMsg
+    (staleMsg.length ? '　⚠ ' + staleMsg.join('，') + (schemaMode ? '' : '，请重新构建') : '') + missMsg
   );
-  if (staleMsg.length) console.warn('[语义层过期]', st);
+  if (staleMsg.length) console.warn(schemaMode ? '[无 schema 的表]' : '[语义层过期]', st);
   /* 默认/深链接指定的表可能在当前目录里没有文件（切到配置更少的分支时很常见）。
      这种情况不要整条 init 抛错 —— 换一张确实存在的表，状态栏已经写明缺了多少张。 */
   const missSet = new Set(missing);

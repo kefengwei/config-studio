@@ -8,8 +8,16 @@ const DS = (() => {
   const fills = new Map();   // name -> { total, fields }
   const allCache = new Map(); // name -> Items[]（只在「删除前查引用」时全量加载，一次性）
   let SEM = null;
+  let semMode = 'builtin';   // 'schema' = 运行时从 json-schemas 现算；'builtin' = 内嵌 semantics.json
+  let schemasRaw = null;
   let fileList = [];
   let staleTables = { added: [], removed: [] };
+  let aggScan = false;       // 只在 init 扫描那 6 路并发里聚合数据，之后不再重复遍历
+  /* 数据聚合：schema 模式的语义层要靠它推断引用目标与表元数据。
+     一次递归同时收四样东西，避免对 7.6k 行扫四遍。 */
+  const agg = { rowIndex: {}, refValues: {}, strValues: {}, paramValues: {}, tableMeta: {}, increments: {} };
+  const REF_SUFFIX = /RowName$/;
+  const SKIP_IMPLICIT = new Set(['Name', 'Type', 'Desc', 'Description', 'Notes', 'Title', 'Icon', 'Path', 'Key', 'Value', 'Comment', 'Text', 'Url', 'Color', 'Sound', 'Effect', 'Prefab', 'Anim', 'Bundle', 'Address', 'Group', 'Category', 'Tag', 'RowName', 'Id', 'Ids', 'Channel', 'DataType']);
   let missingTables = [];   // 磁盘上没有对应文件的表（切到配置更少的分支时会出现）
   let current = null;
   const MAX_OPEN = 4;
@@ -27,30 +35,108 @@ const DS = (() => {
     return await fetch('/api/tables').then((x) => x.json());
   }
 
+  /* 配置仓库的 json-schemas/ 一次性读全：桌面版由 Rust 拼成一个 JSON 对象，
+     浏览器版走 /api/schemas。一个文件一个请求太慢（94 个文件）。 */
+  async function readSchemasText() {
+    if (invoke) return await invoke('read_schemas');
+    const res = await fetch('/api/schemas');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.text();
+  }
+
   const fileName = (n) => (/\.json$/.test(n) ? n : n + '.json');
   const baseName = (n) => n.replace(/\.json$/, '');
   const stripBom = (s) => (s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s);
   const byteLen = (s) => new TextEncoder().encode(s).length;
 
+  /* 数据聚合（仅 schema 模式需要）：一遍递归同时收
+       rowIndex    —— 每张表的 RowName 集合，用来算引用命中率
+       refValues   —— 每个 *RowName 字段里出现过的值
+       strValues   —— 其它字符串字段的值（隐式引用靠它）
+       paramValues —— 执行器 {Name,JsonInput} 里每个参数的取值
+       tableMeta   —— 行数 / 填了 Notes 的行数 / 出现过的键
+     内嵌模式的语义层是构建期写死的，用不上这些，所以只在 init 扫描期打开。 */
+  function aggregateItems(items, base) {
+    const idx = agg.rowIndex[base] || (agg.rowIndex[base] = new Set());
+    const meta = agg.tableMeta[base] || (agg.tableMeta[base] = { count: 0, notesFilled: 0, keys: null });
+    const keys = new Set();
+    let withNotes = 0;
+    const walk = (v) => {
+      if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) walk(v[i]); return; }
+      if (!v || typeof v !== 'object') return;
+      /* 执行器节点：参数名要看定义才知道是不是引用，先按名字全部收下 */
+      if (typeof v.Name === 'string' && v.JsonInput && typeof v.JsonInput === 'object' && !Array.isArray(v.JsonInput)) {
+        const m = agg.paramValues[v.Name] || (agg.paramValues[v.Name] = {});
+        for (const [k, pv] of Object.entries(v.JsonInput)) {
+          if (typeof pv !== 'string' || !pv) continue;
+          (m[k] || (m[k] = new Set())).add(pv);
+        }
+      }
+      for (const [k, val] of Object.entries(v)) {
+        if (typeof val === 'string' && val) {
+          if (k !== 'RowName' && REF_SUFFIX.test(k)) (agg.refValues[k] || (agg.refValues[k] = new Set())).add(val);
+          else if (!REF_SUFFIX.test(k) && !SKIP_IMPLICIT.has(k)) (agg.strValues[k] || (agg.strValues[k] = new Set())).add(val);
+        }
+        walk(val);
+      }
+    };
+    for (const it of items) {
+      if (!it || typeof it !== 'object') continue;
+      if (it.RowName !== undefined && it.RowName !== null) idx.add(String(it.RowName));
+      if (it.Notes !== undefined && it.Notes !== null && String(it.Notes).trim()) withNotes++;
+      for (const k of Object.keys(it)) keys.add(k);
+      walk(it);
+    }
+    meta.count = items.length;
+    meta.notesFilled = withNotes;
+    meta.keys = keys;
+  }
+
   async function init(onProgress) {
-    const r = await fetch('assets/semantics.json').then((x) => x.json());
-    SEM = r;
     const list = await listTables();
     fileList = list.tables || [];
-    const names = Object.keys(SEM.tables);
-    /* 语义层只在构建时生成，所以"新增/删除配置文件"它不会自己跟上。
-       这里只做零误报的检测：目录里有但语义层没有的表、语义层有但文件没了的表。
-       （工作台自己写文件只会改 mtime，不会触发这个提示） */
     const onDisk = new Set();
     for (const f of fileList) {
       const n = baseName(f.name);
       if (n.indexOf('.') === -1) onDisk.add(n);   // 只要基表，Config_X.<channel>.json 是增量
     }
-    const semSet = new Set(names);
-    staleTables = {
-      added: [...onDisk].filter((n) => !semSet.has(n)).sort(),
-      removed: [...semSet].filter((n) => !onDisk.has(n)).sort(),
-    };
+
+    /* 语义层来源：优先从配置仓库的 json-schemas/ 现算（后端改字段只需重导 schema 并提交），
+       老仓库没有 json-schemas/ 时回落到构建期产物 assets/semantics.json。 */
+    let schemas = null;
+    try {
+      const txt = await readSchemasText();
+      const parsed = JSON.parse(stripBom(txt));
+      if (parsed && Object.keys(parsed).length) schemas = parsed;
+    } catch (e) {
+      console.warn('[语义层] 读 json-schemas 失败，改用内嵌语义层：', e);
+    }
+
+    let names;
+    if (schemas) {
+      semMode = 'schema';
+      schemasRaw = schemas;
+      aggScan = true;
+      names = [...onDisk].filter((n) => schemas[n]).sort();
+      const noSchema = [...onDisk].filter((n) => !schemas[n]).sort();
+      const noFile = Object.keys(schemas).filter((n) => !onDisk.has(n)).sort();
+      staleTables = { added: noSchema, removed: noFile };
+      /* 先放一个空骨架：扫描期间 setNotes 会往里写行数/注释率，缺 table 时它会自己跳过 */
+      SEM = { tables: {}, enums: {}, refTargets: {}, actuators: {}, stats: {}, generatedAt: null, source: { mode: 'schema' } };
+    } else {
+      semMode = 'builtin';
+      SEM = await fetch('assets/semantics.json').then((x) => x.json());
+      names = Object.keys(SEM.tables);
+      /* 语义层只在构建时生成，所以"新增/删除配置文件"它不会自己跟上。
+         这里只做零误报的检测：目录里有但语义层没有的表、语义层有但文件没了的表。
+         （工作台自己写文件只会改 mtime，不会触发这个提示） */
+      const semSet = new Set(names);
+      staleTables = {
+        added: [...onDisk].filter((n) => !semSet.has(n)).sort(),
+        removed: [...semSet].filter((n) => !onDisk.has(n)).sort(),
+      };
+    }
+
     let done = 0;
     const missing = [];
     const queue = names.slice();
@@ -63,8 +149,14 @@ const DS = (() => {
       }
     };
     await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+    aggScan = false;
     missingTables = missing.sort();
-    if (missingTables.length) console.warn('[缺表] 语义层有但磁盘上没有的表：', missingTables);
+    if (missingTables.length) console.warn('[缺表] 磁盘上没有对应文件的表：', missingTables);
+
+    if (semMode === 'schema') {
+      SEM = window.SFS.build({ schemas: schemasRaw, baseTables: names, agg: agg });
+      if (staleTables.added.length) console.warn('[无 schema] 这些配置表没有对应的 json-schemas 定义（后端没导出？）：', staleTables.added);
+    }
     if (onProgress) onProgress(names.length, names.length);
     return SEM;
   }
@@ -138,6 +230,9 @@ const DS = (() => {
     let data;
     if (files.has(base)) data = files.get(base).data;
     else data = JSON.parse(stripBom(await readText(base)));
+    if (aggScan) {
+      try { aggregateItems(Array.isArray(data.Items) ? data.Items : [], base); } catch (e) { }
+    }
     return setNotes(base, indexOf(data));
   }
 
@@ -629,6 +724,7 @@ const DS = (() => {
     findRefsTo: findRefsTo, loadAll: loadAll,
     notes: ensureNotes, rowNames, hasRow, labelOf, textOf, matchRowField,
     get sem() { return SEM; },
+    get semMode() { return semMode; },
     get files() { return fileList; },
     get stale() { return staleTables; },
     get missing() { return missingTables; },

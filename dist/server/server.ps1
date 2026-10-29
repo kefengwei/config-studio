@@ -231,6 +231,27 @@ function Handle-Request($req) {
     return @{ code = 200; json = @{ ok = $true; dir = $ConfigDir; tables = $list.ToArray() } }
   }
 
+  if ($method -eq 'GET' -and $path -eq '/api/schemas') {
+    # 语义层已改成运行时从 schema 现算，这里把 94 个 schema 拼成一个 JSON 对象一次返回。
+    # 一个文件一个请求太慢；也不走 ConvertFrom-Json 再 ConvertTo-Json——4MB 会明显拖慢。
+    $schemaDir = Join-Path (Split-Path -Parent $ConfigDir) 'json-schemas'
+    if (-not (Test-Path -LiteralPath $schemaDir)) { return @{ code = 404; json = @{ ok = $false; error = '没有 json-schemas 目录' } } }
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.Append('{')
+    $first = $true
+    foreach ($f in (Get-ChildItem -LiteralPath $schemaDir -Filter '*.json' | Sort-Object Name)) {
+      $body = [System.IO.File]::ReadAllText($f.FullName).TrimStart([char]0xFEFF).Trim()
+      if (-not $body) { continue }
+      if (-not $first) { [void]$sb.Append(',') }
+      $first = $false
+      [void]$sb.Append('"').Append($f.BaseName).Append('":')
+      [void]$sb.Append($body)
+    }
+    [void]$sb.Append('}')
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($sb.ToString())
+    return @{ code = 200; raw = $bytes; ctype = 'application/json; charset=utf-8' }
+  }
+
   if ($method -eq 'GET' -and $path -eq '/api/file') {
     $name = $query['name']
     if (-not (Test-ConfigName $name)) { return @{ code = 400; json = @{ ok = $false; error = '非法文件名' } } }

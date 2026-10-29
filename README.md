@@ -224,27 +224,29 @@ http://127.0.0.1:5179/#/Config_Task/Task_DailyTask_Progress
 config-studio/
 ├─ dist/                  ← 交付物，整个目录可以拷走
 │  ├─ index.html          ← 唯一入口页面（浏览器版）
-│  ├─ assets/             ← app.css + js + semantics.json
+│  ├─ assets/             ← app.css + js + semantics.json（读不到 schema 时的回落快照）
 │  ├─ server/server.ps1   ← 本地服务（读文件 / 写文件 / 备份 / 撤销）
 │  └─ 启动.bat
 ├─ src/                   ← 源码
 │  ├─ index.html
 │  ├─ js/                 ← boot / app / edit / column-editor / struct-editor / ref-picker / git /
 │  │                        data / json-edit / json-diff / layout / shortcuts
+│  │                        sem-from-schema（运行时读 json-schemas 现算语义层）
 │  └─ styles/             ← input.css（Tailwind 入口）+ components.css（组件样式）
 ├─ src-tauri/             ← 桌面版（Tauri 2 / Rust）
 │  ├─ Cargo.toml          ← Rust 依赖
 │  ├─ build.rs
 │  ├─ capabilities/       ← WebView 权限声明
-│  ├─ src/lib.rs          ← 启动界面 + 配置读写 + 备份 / 撤销命令
+│  ├─ src/lib.rs          ← 启动界面 + 配置读写 + 备份 / 撤销 + read_schemas（给前端现算语义层）
 │  ├─ src/git.rs          ← git 面板后端（info / status / branches / checkout / diff / log / pull / push / commit）
 │  └─ tauri.conf.json     ← 把 dist/ 内嵌进 exe
 ├─ scripts/
-│  ├─ build.mjs           ← 一键构建：语义层 → CSS → 拷 js → 拷页面
-│  ├─ build-semantics.mjs ← 读 C# 配置类 + 枚举 + 数据，生成 semantics.json
+│  ├─ build.mjs           ← 一键构建：CSS → 拷 js → 拷页面 → 语义层快照
+│  ├─ build-semantics.mjs ← 读 C# 配置类 + 枚举 + 数据，生成 semantics.json（回落快照）
+│  ├─ verify-runtime-sem.mjs ← 对拍：运行时从 schema 现算的语义层 vs 构建期快照
 │  ├─ check-classes.mjs   ← 构建时检查 Tailwind 原子类是否撞了组件类名
 │  ├─ shot.mjs            ← 调试：headless Edge 打开 URL 截图
-│  ├─ cdp.mjs             ← 调试：连桌面版（9333 端口）执行一段 JS
+│  ├─ cdp.mjs             ← 调试：连桌面版（9333，可用 CDP_PORT 改）执行一段 JS
 │  ├─ cdp-shot.mjs        ← 调试：抓桌面版当前视口
 │  └─ make-icon.mjs       ← 生成应用图标（橙色方块 + 网格），npm run icon
 └─ package.json
@@ -254,7 +256,7 @@ config-studio/
 
 ```bash
 npm install          # 构建期依赖：tailwindcss + @tauri-apps/cli
-npm run build        # 语义层 → CSS → 拷 js → 拷页面（一步全做，约 1 秒）
+npm run build        # CSS → 拷 js → 拷页面 → 生成回落用语义层快照（约 1 秒）
 npm run css:watch    # 只改样式时用
 npm run icon         # 重新生成应用图标
 npm run tauri:build  # 出桌面版 exe
@@ -262,8 +264,10 @@ npm run tauri:build  # 出桌面版 exe
 
 浏览器版没有单独的 npm 脚本，起服务就是双击 `dist/启动.bat`（不想自动开浏览器就加 `-NoBrowser`）。
 
-改了 C# 配置类（`src/DoriDori.Backend.Config`）后要重新 `npm run build`，
-语义层才会更新。后端仓库路径可用环境变量 `DR_CS_DIR` 覆盖。
+改了 C# 配置类（`src/DoriDori.Backend.Config`）后，重新导出配置仓库里的 `json-schemas/` 即可，
+工作台运行时自己会读，**不需要构建、不需要发版**（详见下一节）。
+只有想更新「离线兜底快照」时才需要 `npm run build`；生成快照会用 C# 源码，
+后端仓库路径可用环境变量 `DR_CS_DIR` 覆盖。
 
 ## 配置/代码更新后，工作台怎么跟上
 
@@ -272,7 +276,7 @@ npm run tauri:build  # 出桌面版 exe
 | 类别 | 内容 | 存哪 | 更新时机 |
 |---|---|---|---|
 | **行数据** | 每张表里的 Items、Notes | `configs/Config_X.json` | **实时**，页面直接读文件，改完刷新就有 |
-| **语义层** | 字段清单、中文字段名、枚举中文、执行器参数、引用目标 | `assets/semantics.json` | **构建期快照**，要重新构建 |
+| **语义层** | 字段清单、中文字段名、枚举中文、执行器参数、引用目标 | `json-schemas/Config_X.json` | **实时**，打开工作台时现算（读 schema + 扫数据聚合，通常不到 1 秒） |
 
 所以判断标准只有一条：**你改的是「值」还是「定义」**。
 
@@ -285,51 +289,41 @@ npm run tauri:build  # 出桌面版 exe
 - 侧栏的行数、注释覆盖率也是实时的：页面首次加载会把每张表读一遍，顺手按真实数据重算，
   所以不会出现「改了数据、行数还显示旧值」。
 
-### ② 新增 / 删除整张配置表
+### ② C# 里改了字段 / 枚举 / 执行器参数
 
-需要**让开发重新构建一次**（策划机器上不用装 Node）：
+**策划端不用装任何东西，也不用发新版 exe。** 链路只有两步：
+
+1. 后端改 C#（`src/DoriDori.Backend.Config`），重新导出 `json-schemas/*.json`
+   （导出器读 `[Description]` → XML `summary` → 成员名，三级回退，所以中文会一起进 schema）
+2. 把 schema 提交到配置仓库 → 策划 `git pull` → **重新打开工作台就生效**
+
+语义层是在浏览器 / WebView 里现算的：读 `<配置仓库>/json-schemas/` 下所有文件，
+加上扫一遍数据做聚合（引用命中率、字段填充率），再生成表结构、枚举、执行器、引用目标。
+
+### ③ 新增 / 删除整张配置表
+
+同上，只要后端为新表导出了 schema 并提交，策划 pull 之后刷新就有。
+
+没导出 schema 会怎样：那张表**不会出现在左侧列表里**（没有字段定义就没法渲染），
+底部状态栏会写 `⚠ N 张表没有 schema 定义（后端没导出，侧栏不列出）：表名`。
+
+### 语义层读不到 schema 时
+
+工作台会回落到**构建期快照** `dist/assets/semantics.json`（打包时生成的那份），
+所以把 `json-schemas/` 目录删掉、或者拿到一个没有 schema 的旧仓库，界面依然能用，
+只是用的是发版那一刻的定义。这条回落路径也是开发时方便调试用的。
+
+要更新这份快照（只在需要发版、且希望离线兜底是最新定义时才需要）：
 
 ```bash
 cd config-studio && npm run build
 ```
 
-然后把 `dist/` 整个目录重新拷给策划。
+### 怎么快速判断「是不是该更新了」
 
-没重建会怎样：新表不会出现在左侧列表里。旧表被删除这种情况，底部状态栏会出现
-`⚠ 1 张表已无文件` 的提醒。
-
-### ③ C# 里改了字段 / 枚举 / 执行器参数
-
-这条链路最长，因为中文字段名和枚举中文都来自 C# 的 `[Description]`：
-
-1. 后端仓库改 C#（`src/DoriDori.Backend.Config`），编译
-2. 重新导出 json schema（沿用现有的 schema 导出工具 → `json-schemas/*.json`）
-3. 在 `config-studio` 仓库根执行 `npm run build`
-
-   `build-semantics.mjs` 会读三样输入，重新生成 `dist/assets/semantics.json`：
-
-   - `configs/*.json` 与 `json-schemas/*.json`：来自**配置仓库**（不是 config-studio 里）。
-     靠 `config-dir.txt`，或从项目根向上最多 6 级找第一个含 `configs/Config_*.json` 的目录来定位。
-   - C# 枚举源码：默认 `G:/Github/DoriDori.Backend/src/DoriDori.Backend.Config`，可用环境变量 `DR_CS_DIR` 指定。
-4. 把 `dist/` 拷给策划
-
-没重建会怎样：新字段在界面里看不到（打开行详情会看到 `N 个未知字段` 的黄色标记），
-新枚举值显示成数字而不是中文，新执行器显示英文名。
-
-### 怎么快速判断「是不是该重建了」
-
-- 右侧详情出现 **`2 个未知字段`** → 数据里有语义层不认识的字段 → 该重建了。
-- 底部状态栏出现 `⚠ 新增 N 张表未纳入语义层` / `⚠ N 张表已无文件` → 该重建了。
-- 都没出现 → 只是改了值，刷新即可。
-
-### 建议的协作节奏
-
-配置改动天然高频，重建不宜频繁。实践中建议：
-
-- 日常策划改值 → 直接改，随时刷新。
-- 后端每次发版前统一重建一次 `dist/`，随包发给策划。
-- 大版本（新增玩法、新增表）单独发一个新 `dist/`。
-
+- 右侧详情出现 **`2 个未知字段`** → 数据里有 schema 里没有的字段 → 让后端补 schema
+- 底部状态栏出现 `⚠ N 张表没有 schema 定义` → 同上
+- 出现 `⚠ N 张表的文件在当前分支上不存在` → 切到了配置更少的分支，不是错误
 ## 编辑与删除（都先进队列）
 
 点任意一行 → 右侧详情头部有 `编辑本行` / `复制本行` / `删除本行`；表格上方的工具栏还有 `⧉ 复制行` 与 `＋ 新增行`（没选行时「复制行」是灰的）。它们都**不会立刻写文件**：
@@ -451,4 +445,5 @@ cd config-studio && npm run build
 - 切分支 / 拉取之后会自动重新加载工作台（数据层的四层缓存全部作废）。有未保存改动时会先提醒。
 - 切到配置更少的分支（例如 master 只有 41 张表）不会让工作台起不来：缺文件的表会被跳过，状态栏提示缺了多少张，引用它们的格子显示「目标不存在」。
 - 渠道增量文件（`Config_X.6kw-review.json`）可以在界面上看到条目，但编辑入口暂时只对基表开放。
+- 语义层来自配置仓库的 `json-schemas/`：**没有导出 schema 的表不会出现在侧栏**（目前是 `Config_GuildPosition` 这类后端已删除的旧表）。要让它出现，让后端补导出即可。
 - components.css 是原型样式迁移过来的，后续会逐步改成 Tailwind `@apply`。

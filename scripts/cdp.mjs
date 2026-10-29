@@ -5,7 +5,8 @@
 import { readFileSync } from 'node:fs';
 const arg = process.argv[2] || '';
 const expr = arg.endsWith('.js') ? readFileSync(arg, 'utf8') : arg;
-const list = await fetch('http://127.0.0.1:9333/json').then((r) => r.json());
+const PORT = process.env.CDP_PORT || '9333';
+const list = await fetch('http://127.0.0.1:' + PORT + '/json').then((r) => r.json());
 const page = list.find((t) => t.type === 'page');
 if (!page) { console.error('no page'); process.exit(1); }
 const ws = new WebSocket(page.webSocketDebuggerUrl);

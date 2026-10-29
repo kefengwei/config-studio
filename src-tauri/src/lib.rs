@@ -248,6 +248,48 @@ fn list_tables(state: State<'_, AppState>) -> Result<Vec<TableInfo>, String> {
   Ok(out)
 }
 
+/// 一次性把配置仓库的 json-schemas/ 读成一个 JSON 对象：{ "Config_X": { ...schema... }, ... }
+/// 语义层已改成运行时从 schema 现算（前端 sem-from-schema.js），所以这里要够快：
+/// 94 个文件约 4MB，直接拼字符串比 serde_json 逐个解析再序列化快一个数量级。
+#[tauri::command]
+fn read_schemas(state: State<'_, AppState>) -> Result<String, String> {
+  let root = current_root(&state)?;
+  // 用户可能选的是仓库根，也可能直接选 configs 目录
+  let mut dir = root.join("json-schemas");
+  if !dir.is_dir() {
+    let alt = root.parent().map(|p| p.join("json-schemas"));
+    match alt {
+      Some(p) if p.is_dir() => dir = p,
+      _ => return Err(format!("没有找到 json-schemas 目录：{}", dir.display())),
+    }
+  }
+  let rd = fs::read_dir(&dir).map_err(|e| format!("读取 schema 目录失败：{}", e))?;
+  let mut files: Vec<PathBuf> = Vec::new();
+  for e in rd.flatten() {
+    let name = e.file_name().to_string_lossy().to_string();
+    if !name.to_lowercase().ends_with(".json") { continue; }
+    if !e.path().is_file() { continue; }
+    files.push(e.path());
+  }
+  files.sort();
+  let mut out = String::with_capacity(5 * 1024 * 1024);
+  out.push('{');
+  let mut first = true;
+  for p in files {
+    let stem = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    let text = fs::read_to_string(&p).map_err(|e| format!("读取 {} 失败：{}", stem, e))?;
+    let body = text.trim_start_matches('\u{feff}').trim();
+    if body.is_empty() { continue; }
+    if !first { out.push(','); }
+    first = false;
+    out.push_str(&serde_json::to_string(&stem).map_err(|e| e.to_string())?);
+    out.push(':');
+    out.push_str(body);
+  }
+  out.push('}');
+  Ok(out)
+}
+
 #[tauri::command]
 fn read_file(state: State<'_, AppState>, name: String) -> Result<String, String> {
   let root = current_root(&state)?;
@@ -490,6 +532,7 @@ pub fn run() {
       ping,
       list_tables,
       read_file,
+      read_schemas,
       save_file,
       list_backups,
       undo,
