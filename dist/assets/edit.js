@@ -314,7 +314,7 @@ async function saveAllInner() {
           for (const d of done) { try { await DS.undo(d.backup); rolled2.push(d.table); } catch (e2) { fail2.push(d.table + '（备份 ' + d.backup + '）'); } }
           uiAlert('没有保存：文件已被外部修改', p.table + '\n\n' + e.message +
             (rolled2.length ? '\n\n已还原本次已写入的：' + rolled2.join('、') : '') +
-            (fail2.length ? '\n\n⚠ 这几张表回滚失败，需要手动还原：' + fail2.join('、') : '') +
+            (fail2.length ? '\n\n△ 这几张表回滚失败，需要手动还原：' + fail2.join('、') : '') +
             '\n\n你的改动还在待保存队列里。');
           await reloadAfterSave(parts.map((x) => x.table));
           setStatus('保存已取消 · 外部改动未受影响');
@@ -328,7 +328,7 @@ async function saveAllInner() {
         syncDelMarks();
         uiAlert(failed.length ? '保存失败，部分回滚失败' : '保存失败，已回滚', p.table + '：' + e.message +
           (rolled.length ? '\n\n已还原：' + rolled.join('、') : '') +
-          (failed.length ? '\n\n⚠ 这几张表回滚失败，需要手动还原：' + failed.join('、') : ''));
+          (failed.length ? '\n\n△ 这几张表回滚失败，需要手动还原：' + failed.join('、') : ''));
         await reloadAfterSave(parts.map((x) => x.table));
         setStatus('保存失败');
         return false;
@@ -961,8 +961,8 @@ window.renderDetail = function (row) {
       '<span>点底部「预览并保存」后才会写入文件</span>' +
       (p && p.refs
         ? '<span class="d-del-refs">' + (refs.length
-            ? '⚠ 会影响 ' + refs.length + ' 处引用：' + esc(refs.slice(0, 2).map((x) => x.table + '/' + x.row).join('、')) + (refs.length > 2 ? ' 等' : '')
-            : '✓ 没有其他行引用它') + '</span>'
+            ? '△ 会影响 ' + refs.length + ' 处引用：' + esc(refs.slice(0, 2).map((x) => x.table + '/' + x.row).join('、')) + (refs.length > 2 ? ' 等' : '')
+            : '○ 没有其他行引用它') + '</span>'
         : '<span class="d-del-refs">正在检查引用…</span>');
     const undo = document.createElement('button');
     undo.className = 'btn';

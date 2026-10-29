@@ -10,6 +10,9 @@ dist/config-dir.txt
 
 *.log
 
+# design-taste-frontend 的 before/after 截图与报告（本地审查用）
+.taste-skill/
+
 # Tauri / Rust 构建产物（cargo 可重建，几百 MB）
 src-tauri/target/
 src-tauri/gen/schemas/

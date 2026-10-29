@@ -93,7 +93,7 @@ git-fetch-with-cli = true
 
 不在国内就把这个文件删掉（会回落到官方源）。
 
-图标是脚本生成的（橙色方块 + 网格），改配色就改 `scripts/make-icon.mjs` 然后 `npm run icon`。
+图标是脚本生成的（Primer 蓝方块 + 网格），改配色就改 `scripts/make-icon.mjs` 然后 `npm run icon`。
 
 ## 快捷键总表（按 `?` 打开）
 
@@ -248,7 +248,8 @@ config-studio/
 │  ├─ shot.mjs            ← 调试：headless Edge 打开 URL 截图
 │  ├─ cdp.mjs             ← 调试：连桌面版（9333，可用 CDP_PORT 改）执行一段 JS
 │  ├─ cdp-shot.mjs        ← 调试：抓桌面版当前视口
-│  └─ make-icon.mjs       ← 生成应用图标（橙色方块 + 网格），npm run icon
+│  ├─ make-icon.mjs       ← 生成应用图标（Primer 蓝方块 + 网格），npm run icon
+│  └─ cr.mjs              ← 算 WCAG 对比度：node scripts/cr.mjs "名" "#前景" "#背景"
 └─ package.json
 ```
 
@@ -268,6 +269,120 @@ npm run tauri:build  # 出桌面版 exe
 工作台运行时自己会读，**不需要构建、不需要发版**（详见下一节）。
 只有想更新「离线兜底快照」时才需要 `npm run build`；生成快照会用 C# 源码，
 后端仓库路径可用环境变量 `DR_CS_DIR` 覆盖。
+
+## 配色与主题
+
+两套主题都定义在 [components.css](src/styles/components.css) 顶部的 token 区（亮色 `:root`、
+暗色 `@media (prefers-color-scheme: dark)` 与 `:root.dark`），组件里没有写死的颜色，全走 `var(--…)`。
+
+### 取向：照 GitHub Primer 的规范来，中性灰打底
+
+色值直接取自 [Primer](https://primer.style/foundations/color)（GitHub 自己的设计系统）的语义 token，
+没有另起一套：
+
+| 用在哪 | 亮色（Primer light） | 暗色（Primer dark） |
+|---|---|---|
+| 画布（中栏底） | `#f6f8fa` `bgColor.muted` | `#0d1117` `bgColor.default` |
+| 面板（左右栏、表头） | `#ffffff` `bgColor.default` | `#151b23` `bgColor.muted` |
+| 面板内嵌（hover、次级块） | `#f6f8fa` | `#212830` `bgColor.disabled` |
+| 正文 / 次级 / 三级文字 | `#1f2328` / `#424a53` / `#59636e` | `#f0f6fc` / `#c9d1d9` / `#9198a1` |
+| 分隔线 | `#d8dee4` | `#30363d` |
+| 强调（焦点、链接、激活条） | `#0969da` `fgColor.accent` | `#4493f8` |
+| 选中行 | `#e4e9ef` + 左侧 3px `#0969da` 条 | `#21262d` + 3px `#4493f8` 条 |
+| 数据 chip（物品、奖励） | `#f6f8fa` 底 / `#1f2328` 字 | `#21262d` 底 / `#f0f6fc` 字 |
+| 主按钮 | 近黑 `#1f2328` 底 + 白字 | 近白 `#f0f6fc` 底 + 深字 |
+
+为什么这样分：
+
+- **颜色只给可交互和数据，外壳一律中性**。这是 Primer 的核心取向，也是 23 块真实产品屏的实测规律
+  （中位屏只有 3% 彩色像素）：整屏黑白灰，蓝只出现在链接、焦点环、选中条上。
+- **控件边界单独一档 `--field-line`**。画布和面板靠底色差分层，但输入框、按钮和面板同色，
+  只靠 `borderColor.default`（对白 1.45:1）会"看不见"。所以控件边用比分隔线深一档的值：
+  亮 `#9aa4af`（2.5:1）、暗 `#4a5361`（2.2:1），加上一条极轻的内凹阴影，读起来就是"这里能填"。
+- **主按钮不用彩色**。亮色近黑、暗色近白，反相表达"这是本屏最重的动作"，不引入第三套色相。
+- **橙色只留给危险操作**（删除行）和警告，不再当品牌色用。
+
+### 对比度（脚本实测，非估算）
+
+| 组合 | 亮色 | 暗色 |
+|---|---|---|
+| 正文 / 面板 | 15.8 | 15.9 |
+| 次级文字 / 面板 | 9.0 | 11.2 |
+| 三级文字 / 画布 | 5.7 | 6.5 |
+| 三级文字 / 面板 | 6.1 | 5.9 |
+| 强调 / 面板 | 5.2 | 5.6 |
+| 数据 chip 字 / 底 | 14.8 | 14.0 |
+| 控件边 / 面板 | 2.5 | 2.2 |
+
+随时可以复算：`node scripts/cr.mjs "名字" "#前景色" "#背景色" …`（成对传入，脚本按 WCAG 打印比值）。
+
+### 表格宽度：宁可横向滚动，不压缩成省略号
+
+中间表格的列是按「这张表有什么字段」自动挑的（RowName + 几个标量 + 一个最富的字段）。
+列一多、窗口一窄，硬塞进一屏就会把每列压成「关…」「推…」，等于没显示。
+
+现在的策略：
+
+- 每列有一个**像素下限**（行名列 210，`COL_MIN`：数值列 104、引用列 150、奖励/执行器列 176…），
+  列宽按下限求和；总和超过中栏就让中栏横向滚动，中栏更宽时再整体等比放大铺满
+  （见 [app.js](src/js/app.js) `renderGrid` 里设 `tbl.style.minWidth` 与 `<colgroup>` 的像素宽）。
+- **表头的英文副标题允许折行**。`RecommendedCombatPower` 这种 22 字符的字段名在等宽字体下
+  单行放不下，折成两行比截成 `Recommend…` 可读，也让列宽的下限只由中文名和数据决定。
+- **横向滚动时行名列常驻左侧**（`td:first-child` / `th:first-child` 的 `position: sticky`），滚到最右边也知道自己在看哪一行。
+- 表头两行：中文名在上、JSON 字段名在下，鼠标悬停出完整字段说明。
+- 滚动条颜色跟随主题（`scrollbar-color` + `::-webkit-scrollbar`），暗色下不会跳出一条浅色滑轨。
+
+## 字体：Maple Mono NF CN，随包分发
+
+界面统一用 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（v7.9）。
+**字体文件在 `src/fonts/`，构建时拷进 `dist/assets/fonts/`，桌面版再内嵌进 exe**。
+使用者不需要在系统里安装任何字体，换一台干净机器双击也能立刻看到正确字形。
+
+| 文件 | 字重 | 用途 | 体积 |
+|---|---|---|---|
+| `MapleMono-NF-CN-Regular.woff2` | 400 | 正文、表格数据、详情值 | 1.7 MB |
+| `MapleMono-NF-CN-Medium.woff2` | 500 | 中粗：行名、字段中文名 | 1.7 MB |
+| `MapleMono-NF-CN-SemiBold.woff2` | 600 | 标题、表头、按钮 | 1.8 MB |
+
+### 为什么不是全量字体
+
+官方 `MapleMono-NF-CN.zip` 是 152 MB，单字重 TTF 20 MB，转 woff2 也有 6.1 MB。
+三档全量要 18 MB，exe 会从 6.5 MB 涨到 25 MB。
+
+所以做了**字符子集**：GB2312 全集（6763 汉字 + 682 符号）加本仓库 `configs/`、
+`json-schemas/`、`src/` 里出现过的**全部**字符，一共 7571 个，每档压到 1.7 MB，
+三档合计 5.1 MB，exe 约 11.6 MB。
+
+代价说清楚：**GB2312 之外的字（生僻字、Emoji、CJK 扩展区）不会用这个字体渲染**，
+浏览器会按 fallback 链退到系统字体（微软雅黑等），能读但字形不一致。
+真遇到这种情况，按下面的「怎么扩字符集」重跑一次就行。
+
+### 怎么扩字符集 / 换字体版本
+
+```bash
+# 1. 下载官方包（GitHub release 直连很慢，走代理）
+curl -sL --proxy http://127.0.0.1:18089 -o nf-cn.zip \
+  https://github.com/subframe7536/maple-font/releases/download/v7.9/MapleMono-NF-CN.zip
+
+# 2. 解压需要的三个字重
+unzip -o -j nf-cn.zip "MapleMono-NF-CN-*.ttf" "LICENSE.txt" -d ttf
+
+# 3. 重新收集字符 + 子集（需要 python + fonttools + brotli）
+node scripts/subset-font.mjs --ttf ttf --out src/fonts
+```
+
+`scripts/subset-font.mjs` 会扫描配置仓库和前端源码收集字符，和 GB2312 并集后调
+`python -m fontTools.subset` 生成 woff2。字体是 SIL OFL 1.1 许可，
+授权文本随字体一起分发：`src/fonts/OFL-MapleMono.txt`。
+
+### 两个细节
+
+- **连字关掉了**（`body { font-variant-ligatures: none }`）。Maple Mono 默认把 `->` `!=` `===`
+  渲染成箭头和符号，但表格里是标识符和数值，改形状会误导。注意这个属性必须写在
+  `font` 简写**之后**、而且不能依赖 `font` 简写——简写会把 `font-variant-ligatures` 重置回
+  `normal`，压缩器还会把简写挪到最后，等于白写。所以 body 里用的是 longhand。
+- **中文是全角，占两个字符宽**。换成等宽字体后中文字段名比原来宽，所以列宽下限
+  （`COL_MIN`）和表头折行是配套改的，见上一节。
 
 ## 配置/代码更新后，工作台怎么跟上
 
@@ -461,3 +576,17 @@ cd config-studio && npm run build
 - 渠道增量文件（`Config_X.6kw-review.json`）可以在界面上看到条目，但编辑入口暂时只对基表开放。
 - 语义层来自配置仓库的 `json-schemas/`：**没有导出 schema 的表不会出现在侧栏**（目前是 `Config_GuildPosition` 这类后端已删除的旧表）。要让它出现，让后端补导出即可。
 - components.css 是原型样式迁移过来的，后续会逐步改成 Tailwind `@apply`。
+
+### 输入框和按钮：边界必须看得见
+
+表格是只读的，所以「能不能点 / 能不能填」全靠控件自己的边界和底色表达。三处取值：
+
+| 角色 | 亮色 | 暗色 |
+|---|---|---|
+| 控件边界 `--field-line` | `#a8a294`（对白面板 2.9:1） | `#5b626c`（对面板 2.7:1） |
+| 默认按钮底 `--btn-bg` | `#f0eee8`（比面板深一档） | `#262a31`（比面板亮一档） |
+| 主按钮 | `#1b2426` 白字 | `#dfe4e8` 深字（反相） |
+
+- 输入框、下拉、按钮统一用 `--field-line`；原来用 `--line`（`#e1ddd4`，对白只有 1.3:1），在白色面板上几乎等于没有边。
+- 输入框再加一层极轻的内凹阴影，读起来是「凹陷可写」；按钮不加阴影，靠 `--btn-bg` 的浅灰底区分（扁平单色是这套设计系统的硬规则，加了投影会被 lint 判 FAIL）。
+- focus 一律 accent 边 + 3px ring，不只靠光标位置判断。

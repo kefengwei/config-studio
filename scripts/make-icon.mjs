@@ -1,6 +1,6 @@
 
 /* 生成 src-tauri/icons/icon.ico + icon.png（零依赖：手写 PNG 编码 + ICO 容器）。
-   图案：橙底圆角方块 + 白色 3 列网格，呼应「配置表」。 */
+   图案：Primer accent 蓝底圆角方块 + 白色 3 列网格，呼应「配置表」。 */
 import { deflateSync } from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -59,14 +59,14 @@ function draw(size) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
       if (!inRounded(x + 0.5, y + 0.5)) { buf[i + 3] = 0; continue; }
-      // 橙底 #c2410c → 上方稍亮 #e2571a 的竖向渐变
+      // Primer accent 蓝 #0969da → 上方稍深 #0550ae 的竖向渐变
       const t = y / size;
-      buf[i] = Math.round(194 + (226 - 194) * (1 - t));
-      buf[i + 1] = Math.round(65 + (87 - 65) * (1 - t));
-      buf[i + 2] = Math.round(12 + (26 - 12) * (1 - t));
+      buf[i] = Math.round(5 + (9 - 5) * t);
+      buf[i + 1] = Math.round(80 + (105 - 80) * t);
+      buf[i + 2] = Math.round(174 + (218 - 174) * t);
       buf[i + 3] = 255;
       for (const c of cells) {
-        if (inCell(x + 0.5, y + 0.5, c)) { buf[i] = 255; buf[i + 1] = 252; buf[i + 2] = 246; buf[i + 3] = 255; break; }
+        if (inCell(x + 0.5, y + 0.5, c)) { buf[i] = 252; buf[i + 1] = 253; buf[i + 2] = 253; buf[i + 3] = 255; break; }
       }
     }
   }

@@ -29,6 +29,19 @@ for (const f of fs.readdirSync(path.join(SRC, 'js'))) {
   if (f.endsWith('.js')) fs.copyFileSync(path.join(SRC, 'js', f), path.join(ASSETS, f));
 }
 
+/* 3b. 字体：随包分发，不依赖系统安装。
+ * 源文件在 src/fonts/*.woff2；这里只是拷贝，字体本身已按 GB2312 + 仓库字符做过子集。 */
+step('拷贝字体');
+const FONTS = path.join(SRC, 'fonts');
+const FONT_OUT = path.join(ASSETS, 'fonts');
+fs.mkdirSync(FONT_OUT, { recursive: true });
+let fontBytes = 0;
+for (const f of fs.readdirSync(FONTS)) {
+  if (!f.endsWith('.woff2')) continue;
+  fs.copyFileSync(path.join(FONTS, f), path.join(FONT_OUT, f));
+  fontBytes += fs.statSync(path.join(FONT_OUT, f)).size;
+}
+
 /* 4. 页面
  * 给 assets 的 css/js 统一追加 ?v=<构建时间>：
  * Tauri 的 WebView2 会按 URL 缓存 /assets/*，没有版本号时改了前端重启 exe 还是旧代码。 */
@@ -49,3 +62,4 @@ console.log('构建完成：' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
 console.log('  dist/index.html          ' + size(path.join(DIST, 'index.html')));
 console.log('  dist/assets/app.css      ' + size(path.join(ASSETS, 'app.css')));
 console.log('  dist/assets/semantics.json ' + size(path.join(ASSETS, 'semantics.json')));
+console.log('  dist/assets/fonts/*.woff2  ' + (fontBytes / 1024 / 1024).toFixed(2) + ' MB');

@@ -59,12 +59,12 @@ async function init() {
   const removedOnly = st.removed.filter((n) => !missing.includes(n));
   if (removedOnly.length) staleMsg.push(removedOnly.length + ' 张表已无文件');
   const missMsg = missing.length
-    ? '　⚠ ' + missing.length + ' 张表的文件在当前分支上不存在（引用它们的格子会显示「目标不存在」）'
+    ? '　△ ' + missing.length + ' 张表的文件在当前分支上不存在（引用它们的格子会显示「目标不存在」）'
     : '';
   setStatus(
     (missing.length ? '部分表缺失 · ' : '就绪 · ') + state.sem.stats.actuators + ' 个执行器 · ' + state.sem.stats.refFields + ' 个引用字段 · ' +
     state.sem.stats.enumsWithChinese + '/' + state.sem.stats.enums + ' 枚举有中文' +
-    (staleMsg.length ? '　⚠ ' + staleMsg.join('，') + (schemaMode ? '' : '，请重新构建') : '') + missMsg
+    (staleMsg.length ? '　△ ' + staleMsg.join('，') + (schemaMode ? '' : '，请重新构建') : '') + missMsg
   );
   if (staleMsg.length) console.warn(schemaMode ? '[无 schema 的表]' : '[语义层过期]', st);
   /* 默认/深链接指定的表可能在当前目录里没有文件（切到配置更少的分支时很常见）。
@@ -402,15 +402,28 @@ function pickColumns(t) {
    否则长文本列会把表格撑出容器，最右边那列永远被切掉半个字。 */
 const COL_W = { number: 9, bool: 7, ref: 13, enum: 9, text: 13, primarray: 16, objectarray: 18, actuators: 16, enumarray: 15, datetime: 12, duration: 10 };
 
+/* 每列的最小像素宽：等宽字体（Maple Mono）下中文占两个英文字宽，
+   表头中文 + 英文副标题最少要这么多，否则只剩省略号。
+   只影响 table 的 min-width（超了横向滚动），不影响各列比例。 */
+const COL_MIN = { number: 104, bool: 88, ref: 150, enum: 116, text: 150, primarray: 168, objectarray: 190, actuators: 176, enumarray: 170, datetime: 148, duration: 128 };
+
 function renderGrid() {
   const t = state.sem.tables[state.cur];
   const cols = pickColumns(t);
   const tbl = document.getElementById('grid');
   const oldCg = tbl.querySelector('colgroup');
   if (oldCg) oldCg.remove();
-  const ws = cols.map((c) => (c.name === 'RowName' ? 27 : (COL_W[c.kind] || 13)));
-  const sum = ws.reduce((a2, b) => a2 + b, 0);
-  tbl.insertAdjacentHTML('afterbegin', '<colgroup>' + ws.map((w) => '<col style="width:' + (w / sum * 100).toFixed(2) + '%">').join('') + '</colgroup>');
+  // 列宽用像素而不是百分比：百分比在 table-layout:fixed 下只能分到「容器宽/列数」，
+  // 等宽字体下「推荐战斗力」这类表头会被压成「推…」。这里按每列的下限给像素，
+  // 总和超过容器就让 .grid-wrap 出横向滚动条；容器更宽时整体等比放大铺满。
+  const wrapEl = document.querySelector('.grid-wrap');
+  const basePx = cols.map((c) => (c.name === 'RowName' ? 210 : (COL_MIN[c.kind] || 140)));
+  const needPx = basePx.reduce((a2, b) => a2 + b, 0);
+  const wrapW = wrapEl ? wrapEl.clientWidth : 0;
+  const scale = wrapW > needPx ? wrapW / needPx : 1;
+  const px = basePx.map((v) => Math.round(v * scale));
+  tbl.style.minWidth = Math.max(wrapW, needPx) + 'px';
+  tbl.insertAdjacentHTML('afterbegin', '<colgroup>' + px.map((w) => '<col style="width:' + w + 'px">').join('') + '</colgroup>');
   $('#grid-head').innerHTML = '<tr>' + cols.map((c) => {
     const tip = c.name + (c.desc ? ' · ' + c.desc : '') + ' · 点击打开列编辑';
     const cn = cnLabel(c);
@@ -800,7 +813,7 @@ function renderValue(f, v) {
       const label = ok ? refLabel(f.target, v) : null;
       const showRaw = ok && label !== v;
       return '<span class="ref-chip' + (ok ? '' : ' dangling') + (f.implicit ? ' implicit' : '') + '" data-goto="' + esc(f.target) + '" data-row="' + esc(v) + '" title="' + esc(f.target) + ' / ' + esc(v) + (f.implicit ? '（数据推断，未经声明）' : '') + '">' +
-        (ok ? esc(label) : '⚠ 目标不存在') +
+        (ok ? esc(label) : '△ 目标不存在') +
         (showRaw ? '<span class="raw">' + esc(v) + '</span>' : '') +
         '<span class="target">→ ' + esc(f.target.replace(/^Config_/, '')) + '</span></span>';
     }
