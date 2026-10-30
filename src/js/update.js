@@ -113,11 +113,13 @@
 
   /* ---------------- 检查 ---------------- */
   // 国内连 GitHub 抖一下很常见，失败后自动再试一次（多等 1.2 秒，成功率明显上升）
-  async function invokeCheck() {
+  async function invokeCheck(quiet) {
     try {
       return await invoke('plugin:updater|check', { timeout: CHECK_TIMEOUT });
     } catch (e) {
-      say('第一次检查失败，正在重试…');
+      // 静默检查（启动 3 秒后那次）和设置面板的探测失败都不写状态栏：
+      // 国内直连 GitHub 本来就会失败，每次启动都在底部挂一句「检查失败」很吵。
+      if (!quiet) say('第一次检查失败，正在重试…');
       await new Promise(function (r) { setTimeout(r, 1200); });
       return await invoke('plugin:updater|check', { timeout: CHECK_TIMEOUT });
     }
@@ -129,7 +131,7 @@
     if (manual) say('正在检查更新…');
     let meta = null;
     try {
-      meta = await invokeCheck();
+      meta = await invokeCheck(!manual);
     } catch (e) {
       checking = false;
       if (manual) {
@@ -224,7 +226,7 @@
     try {
       // 复用带重试的版本：国内第一次连 GitHub 常常要 20-40 秒，
       // 单发一次 15 秒超时会把「能通但慢」误报成失败。
-      const meta = await invokeCheck();
+      const meta = await invokeCheck(true);
       return { ok: true, version: meta ? meta.version : null, current: meta ? meta.currentVersion : null };
     } catch (e) {
       return { ok: false, error: String((e && e.message) || e) };

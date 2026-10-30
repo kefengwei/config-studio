@@ -1059,7 +1059,8 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
   display: flex; align-items: center; justify-content: center;
 }
 .ce-panel {
-  width: min(1440px, 96vw); height: 90vh;
+  width: min(1440px, 96vw); max-width: 96vw; height: 90vh;
+  position: relative;
   background: var(--panel); border-radius: var(--r-lg);
   box-shadow: var(--elev3); border: 1px solid var(--line);
   display: flex; flex-direction: column; overflow: hidden;
@@ -1075,6 +1076,18 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
   font-size: 20px; line-height: 1; color: var(--ink-3);
 }
 .ce-x:hover { color: var(--ink); }
+/* 右边缘拖拽手柄：宽 9px 透明条，中间一根短竖线；hover / 拖拽中变强调色 */
+.ce-resize {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 9px;
+  cursor: col-resize; z-index: 6; background: transparent;
+}
+.ce-resize::after {
+  content: ''; position: absolute; top: 50%; right: 3px; width: 3px; height: 46px;
+  margin-top: -23px; border-radius: 2px;
+  background: var(--line-strong); opacity: .5;
+  transition: opacity .12s, background .12s;
+}
+.ce-resize:hover::after, .ce-resize.dragging::after { background: var(--accent); opacity: 1; }
 
 .ce-picker {
   flex: none; display: flex; align-items: center; gap: 8px;
@@ -1194,7 +1207,7 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 }
 .ce-grid thead th.ce-ch { cursor: pointer; min-width: 92px; }
 .ce-grid thead th.ce-ch:hover { color: var(--accent); }
-.ce-grid thead th.ce-ch.on { color: var(--accent); background: var(--accent-soft); }
+.ce-grid thead th.ce-ch.ce-hsel { color: var(--accent); background: var(--accent-soft); }
 /* 整条模式的两级表头：第一行调用序号、第二行参数名，两行都要吸顶 */
 .ce-grid thead tr.ce-gh th { top: 0; z-index: 3; }
 .ce-grid thead tr.ce-ph th { top: 25px; z-index: 2; text-transform: none; letter-spacing: 0; font-size: 10.5px; }
@@ -1230,13 +1243,24 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 .ce-grid tbody td.chg { background: var(--accent-soft); }
 .ce-grid tbody td.chg input { background: var(--accent-soft); font-weight: 500; color: var(--accent-2); }
 
+/* 选区：选中未改 = --sel-bg；选中且已改 = --accent-soft + accent 描边；已改未选 = --accent-soft */
+.ce-grid tbody td.ce-sel { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+.ce-grid tbody td.ce-sel input, .ce-grid tbody td.ce-sel select { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+.ce-grid tbody td.ce-sel-chg { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+/* 空单元格代表「这一行没有第 N 个元素」，不可编辑；选中时用更淡的 --sel-bg，避免连成实心色块 */
+.ce-grid tbody td.ce-na.ce-sel { background: var(--sel-bg); }
+/* 拖选期间禁掉原生文字选择，否则会顺手选中一大片文字 */
+.ce-body.ce-dragging { user-select: none; -webkit-user-select: none; }
+
 .ce-foot {
   flex: none; display: flex; align-items: center; gap: 8px;
   padding: 11px 18px; border-top: 1px solid var(--line); background: var(--panel-2);
 }
 .ce-count { font-size: 11px; color: var(--ink-3); }
 .ce-spacer { flex: 1; }
-.ce-bulk { display: flex; align-items: center; gap: 6px; }
+.ce-bulk { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ce-selsum { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.ce-bulk span[hidden] { display: none; }
 .ce-bulk[hidden] { display: none; }
 .ce-bulk input {
   width: 92px; height: 26px; padding: 0 8px;
@@ -1244,6 +1268,23 @@ th.col-ed:hover .col-ed-i { color: var(--accent); opacity: .8; }
 }
 .ce-only { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-3); white-space: nowrap; cursor: pointer; }
 .ce-only input { accent-color: var(--accent); }
+/* 常用路径快捷条：下拉里几十条路径翻起来费劲，这几个是一眼能找到的入口。 */
+.ce-quick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 18px 8px; }
+.ce-quick[hidden] { display: none; }
+.ce-quick-l { font-size: 10.5px; color: var(--ink-3); letter-spacing: .04em; }
+.ce-chip {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px;
+  border: 1px solid var(--field-line); border-radius: 999px; background: var(--btn-bg);
+  color: var(--ink); font: 11.5px/1 var(--mono); cursor: pointer;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ce-chip:hover { border-color: var(--accent); color: var(--accent); }
+.ce-chip i { font-style: normal; font-size: 10px; color: var(--ink-3); margin-left: 2px; }
+
+/* 执行器展开时组标题是执行器名，后面的小数字是第几次调用 */
+.ce-grid thead th.ce-g { text-transform: none; letter-spacing: 0; }
+.ce-g i { font-style: normal; font-size: 9.5px; opacity: .65; margin-left: 4px; }
+
 
 /* ---------- 快捷键帮助面板（shortcuts.js） ---------- */
 .kh-mask {
