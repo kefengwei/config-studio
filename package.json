@@ -1,6 +1,6 @@
 {
   "name": "dr-config-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "配置工作台：策划用的配置批量维护工具（浏览器版 + Windows 桌面版）",
   "type": "module",
