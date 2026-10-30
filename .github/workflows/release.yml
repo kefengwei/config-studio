@@ -56,6 +56,5 @@ jobs:
             装过旧版的用户不用手动下载 —— 工作台启动时会自己发现新版本并提示安装。
           releaseDraft: false
           prerelease: false
-          uploadUpdaterJson: true
           updaterJsonPreferNsis: true
 
