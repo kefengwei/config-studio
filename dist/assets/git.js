@@ -49,7 +49,7 @@
     btn.hidden = true;
     btn.title = 'Git 面板';
     btn.setAttribute('aria-label', 'Git');
-    btn.innerHTML = '<svg aria-hidden="true"><use href="#i-branch"></use></svg>';
+    btn.innerHTML = '<svg aria-hidden="true"><use href="#i-branch"></use></svg><i class="git-badge" hidden></i>';
     btn.addEventListener('click', () => (G.open ? close() : openPanel()));
     const themeBtn = $('#theme-btn');
     if (themeBtn && themeBtn.parentNode) themeBtn.parentNode.insertBefore(btn, themeBtn);
@@ -191,6 +191,33 @@
     }
   }
 
+  /* 顶栏角标：优先显示「需要拉取」（最该做的事），其次「本地变更」，
+     最后「待推送」。三个数字都写进 title，鼠标停一下就能看全。 */
+  function updateBadge() {
+    if (!btn) return;
+    const b = btn.querySelector('.git-badge');
+    const i = G.info || {};
+    if (!i.isRepo) { if (b) b.hidden = true; return; }
+    const behind = i.behind || 0;
+    const dirty = i.dirty || 0;
+    const ahead = i.ahead || 0;
+    let kind = '', txt = '';
+    if (behind > 0) { kind = 'pull'; txt = '↓' + behind; }
+    else if (dirty > 0) { kind = 'dirty'; txt = String(dirty); }
+    else if (ahead > 0) { kind = 'ahead'; txt = '↑' + ahead; }
+    if (b) {
+      b.hidden = !kind;
+      b.className = kind ? 'git-badge ' + kind : 'git-badge';
+      b.textContent = txt;
+    }
+    const parts = ['Git · ' + (i.branch || '(detached)')];
+    if (behind) parts.push('需拉取 ' + behind);
+    if (ahead) parts.push('待推送 ' + ahead);
+    if (dirty) parts.push('本地变更 ' + dirty);
+    if (!behind && !ahead && !dirty) parts.push('工作区干净');
+    btn.title = parts.join(' · ');
+  }
+
   /* retry：桌面版启动时 app.js 的 init 完成得比 set_config 的状态落定更早，
      第一次 git_info 可能拿不到配置目录。失败就静默重试一次，避免按钮一直藏着。 */
   async function refresh(retry) {
@@ -203,7 +230,7 @@
     syncSel();
     if (G.info && G.info.isRepo) {
       btn.hidden = false;
-      btn.title = 'Git · ' + (G.info.branch || '(detached)') + (G.info.dirty ? ' · ' + G.info.dirty + ' 个变更' : '');
+      updateBadge();
     } else if (!retry) {
       setTimeout(() => refresh(true), 700);
       return;
@@ -545,4 +572,11 @@
   /* 启动界面（boot.js）里还没有配置目录，这时候问 git 只会拿到错误；
      真正的第一次读取由 app.js 的 startApp 在 init 完成后调 refresh()。 */
   document.addEventListener('DOMContentLoaded', () => { build(); });
+
+  /* 顶栏角标每 60 秒静默刷一次：只读 git_info（一条 git 命令），不重绘面板，
+     避免用户正在写提交信息时输入框被顶掉。 */
+  setInterval(() => {
+    if (document.hidden || !G.info || !G.info.isRepo) return;
+    invoke('git_info').then((v) => { G.info = v; updateBadge(); }).catch(() => {});
+  }, 60000);
 })();
