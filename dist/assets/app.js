@@ -21,6 +21,13 @@ const state = {
   searchTimer: null,
   // 定位模式：搜索/筛选后自动把选中行落到结果上（默认开，偏好存 localStorage）
   locate: (localStorage.getItem('wb.locate') || '1') !== '0',
+  /* 渠道视角：null = 基础表；非空 = 叠加该渠道补丁后的生效内容 */
+  channel: null,
+  chSummary: {},
+  chOnly: false,
+  channels: [],
+  rowOps: new Map(),
+  chStats: null,
 };
 
 /* ---------------- boot ---------------- */
@@ -44,6 +51,9 @@ async function init() {
   state.tables = Object.values(state.sem.tables).sort((a, b) => b.rowCount - a.rowCount);
   $('#table-count').textContent = state.tables.length + ' 张';
   renderTableList();
+  await renderChannels();
+  $('#ch-sel').addEventListener('change', (e) => selectChannel(e.target.value));
+  $('#ch-check').addEventListener('click', () => channelCheckFlow());
 
   const missing = await preloadNotes();
   const st = DS.stale || { added: [], removed: [] };
@@ -111,18 +121,228 @@ const refLabel = (target, raw) => {
   return n && n.trim() ? n : raw;
 };
 
+/* 表头统计：基础表视角只看行数/注释覆盖/字段数；渠道视角额外报「改 删 增」与不生效的问题行 */
+function renderMeta() {
+  const t = state.sem.tables[state.cur];
+  const box = $('#cur-meta');
+  if (!t || !box) return;
+  const fields = t.fields.filter((f) => !['RowName', 'Notes'].includes(f.name));
+  const s = state.channel ? state.chStats : null;
+  let html = '';
+  if (s) {
+    const eff = t.rowCount - s.del + s.add;
+    const bits = [];
+    if (s.replace) bits.push('改 ' + s.replace);
+    if (s.del) bits.push('删 ' + s.del);
+    if (s.add) bits.push('增 ' + s.add);
+    html += '<span><b>' + eff + '</b> 行</span>';
+    html += '<span class="ch-meta">基础 ' + t.rowCount + ' 行 · ' + (bits.length ? bits.join(' · ') : '本表无覆盖') + '</span>';
+    if (s.noOp) html += '<span class="ch-warn">' + s.noOp + ' 行缺 Operation（不生效）</span>';
+    if (s.miss) html += '<span class="ch-warn">' + s.miss + ' 行目标不存在</span>';
+    if (s.conflict) html += '<span class="ch-warn">' + s.conflict + ' 行 Add 撞基础行</span>';
+    if (s.dup) html += '<span class="ch-warn">' + s.dup + ' 个 RowName 重复（全被忽略）</span>';
+  } else {
+    html += '<span><b>' + t.rowCount + '</b> 行</span>';
+  }
+  html += '<span>注释覆盖 <b>' + t.notesRate + '%</b></span>' +
+    '<span><b>' + fields.length + '</b> 个字段</span>';
+  if (!state.channel && t.increments) {
+    html += '<span>渠道增量 <b>' + Object.entries(t.increments).map((kv) => kv[0] + ':' + kv[1]).join(' / ') + '</b></span>';
+  }
+  box.innerHTML = html;
+}
+
+/* 左侧「视角」选择器：基础表 / 各渠道。仓库里没有 Config_X.<渠道>.json 时整条隐藏 */
+async function renderChannels() {
+  const bar = $('#ch-bar');
+  if (!bar) return;
+  try { state.channels = await DS.listChannels(); } catch (e) { state.channels = []; }
+  if (!state.channels.length) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const sel = $('#ch-sel');
+  sel.innerHTML = '<option value="">基础表</option>' + state.channels.map((c) =>
+    '<option value="' + esc(c.name) + '">' + esc(c.name) + ' · ' + c.files.length + ' 张表</option>').join('');
+  sel.value = state.channel || '';
+  sel.title = state.channel
+    ? '正在看「' + state.channel + '」叠加补丁后的生效内容'
+    : '基础表：不叠加任何渠道补丁';
+  bar.classList.toggle('on', !!state.channel);
+}
+
+async function selectChannel(ch) {
+  state.channel = ch || null;
+  state.offset = 0;
+  state.selRow = null;
+  state.filters = [];
+  renderPfChips();
+  renderDetail(null);
+  await renderChannels();
+  try { state.chSummary = state.channel ? await DS.channelSummary(state.channel) : {}; } catch (e) { state.chSummary = {}; }
+  renderTableList();
+  if (state.cur) await loadRows();
+  setStatus(state.channel
+    ? '视角：' + state.channel + '　行首的「改 / 删 / 增」表示该渠道对这张表的覆盖'
+    : '视角：基础表（未叠加渠道补丁）');
+}
+
+/* ---------------- 「提为渠道覆盖」 ---------------- */
+function pickChannelDialog(channels, title, sub) {
+  return new Promise((resolve) => {
+    const m = document.createElement('div');
+    m.className = 'cfm-mask';
+    m.innerHTML = '<div class="cfm pick" role="dialog">' +
+      '<div class="cfm-t">' + esc(title) + '</div>' +
+      (sub ? '<div class="cfm-sub">' + esc(sub) + '</div>' : '') +
+      '<div class="cfm-body"><div class="pick-list">' +
+      channels.map((c, i) => '<button type="button" class="pick-item" data-i="' + i + '"><b>' + esc(c.name) + '</b><i>' + c.files.length + ' 张表</i></button>').join('') +
+      '</div></div><div class="cfm-foot"><button class="btn" data-x="no">取消</button></div></div>';
+    document.body.appendChild(m);
+    const done = (v) => { document.removeEventListener('keydown', onKey, true); m.remove(); resolve(v); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); } };
+    document.addEventListener('keydown', onKey, true);
+    m.querySelector('[data-x="no"]').onclick = () => done(null);
+    m.addEventListener('mousedown', (e) => { if (e.target === m) done(null); });
+    m.querySelectorAll('.pick-item').forEach((b) => { b.onclick = () => done(channels[+b.dataset.i].name); });
+    setTimeout(() => { const f = m.querySelector('.pick-item'); if (f) f.focus(); }, 0);
+  });
+}
+
+/* 把当前选中的基础行整行提成某渠道的覆盖（Replace）。写盘前会弹渠道选择 */
+async function promoteRowFlow(row) {
+  if (!row) return;
+  const chans = state.channels.length ? state.channels : await DS.listChannels();
+  if (!chans.length) {
+    uiAlert('没有渠道覆盖文件', '仓库里还没有 Config_X.<渠道>.json 这类覆盖文件。先在配置仓库里建一个，再回来提覆盖。');
+    return;
+  }
+  const ch = await pickChannelDialog(chans, '提为渠道覆盖',
+    '把「' + row.RowName + '」整行写进该渠道的覆盖文件。之后这个渠道读到这一行就用覆盖内容（整行替换）；基础表以后再变，这里不会自动跟着变。');
+  if (!ch) return;
+  try {
+    const r = await DS.promoteRow(ch, state.cur, row);
+    await renderChannels();
+    setStatus(r.created ? ('已新建 ' + r.file) : ('已更新 ' + r.file));
+    await uiAlert('已写入渠道覆盖',
+      (r.created ? '新建 ' : '更新 ') + r.file + '\n这行现在是「' + ch + '」的 Replace 覆盖（整行替换）。');
+    await selectChannel(ch);
+  } catch (e) {
+    uiAlert('提覆盖失败', String((e && e.message) || e));
+  }
+}
+/* 撤销某行的渠道覆盖 / 渠道删除 */
+async function removePatchFlow(row) {
+  if (!state.channel || !row) return;
+  const op = state.rowOps.get(String(row.RowName));
+  if (!op) return;
+  const ok = await uiConfirm('撤销「' + state.channel + '」对 ' + row.RowName + ' 的覆盖？',
+    op === 'delete' ? '撤销后这行会重新出现在这个渠道里（内容回到基础表）。' : '撤销后这行在这个渠道里直接读基础表的内容。',
+    { okText: '撤销覆盖', danger: true });
+  if (!ok) return;
+  try {
+    const r = await DS.removePatchRow(state.channel, state.cur, row.RowName);
+    if (!r || !r.removed) { uiAlert('没有可撤销的覆盖', '补丁文件里找不到这一行。'); return; }
+    await loadRows();
+    const fresh = (state.rows || []).find((x) => x.RowName === row.RowName) || null;
+    renderDetail(fresh);
+    setStatus('已撤销覆盖：' + r.file);
+  } catch (e) {
+    uiAlert('撤销失败', String((e && e.message) || e));
+  }
+}
+/* 渠道体检：扫全部覆盖文件，把不会生效的行列出来 */
+const CH_ISSUE = {
+  noOp: { t: "缺 Operation，整行不生效", k: "noOp" },
+  badOp: { t: "Operation 不认识（只认 Add / Replace / Delete）", k: "noOp" },
+  dup: { t: "RowName 重复，同名行全被忽略", k: "conflict" },
+  miss: { t: "目标行不存在（Update Miss / Delete Miss）", k: "miss" },
+  conflict: { t: "Add 撞基础表已有的行（Create Duplicate，跳过）", k: "conflict" },
+};
+
+async function channelCheckFlow() {
+  setStatus('正在体检所有渠道覆盖…');
+  let list;
+  try {
+    list = await DS.checkAllChannels();
+  } catch (e) {
+    setStatus('就绪');
+    uiAlert('体检失败', String((e && e.message) || e));
+    return;
+  }
+  const chans = state.channels || [];
+  const cnt = {};
+  for (const x of list) cnt[x.issue] = (cnt[x.issue] || 0) + 1;
+  if (!list.length) {
+    setStatus('就绪');
+    uiAlert('渠道体检：没问题', chans.length + ' 个渠道的覆盖文件都能生效。');
+    return;
+  }
+  const sum = Object.keys(CH_ISSUE)
+    .filter((k) => cnt[k])
+    .map((k) => cnt[k] + " 行" + CH_ISSUE[k].t.split("，")[0])
+    .join("　｜　");
+  const rowsHtml = list.map((x) =>
+    '<div class="ck-row ck-' + CH_ISSUE[x.issue].k + '">' +
+      '<b>' + esc(x.channel) + '</b>' +
+      '<span class="ck-t2">' + esc(x.table.replace(/^Config_/, "")) + '/' + esc(x.rowName) + '</span>' +
+      '<span class="ck-i">' + esc(CH_ISSUE[x.issue].t) + '</span>' +
+    '</div>').join("");
+  const mask = document.createElement('div');
+  mask.className = "cfm-mask";
+  mask.innerHTML = '<div class="cfm ck-panel">' +
+    '<div class="cfm-t ck-t">渠道体检' +
+      '<button class="ck-x" data-x="no" title="关闭（Esc）">×</button></div>' +
+    '<div class="cfm-sub">' + chans.length + ' 个渠道　·　' + list.length + ' 行有问题　·　' + esc(sum) + '</div>' +
+    '<div class="ck-list">' + rowsHtml + '</div>' +
+    '<div class="cfm-foot"><button class="btn" data-x="yes">知道了</button></div></div>';
+  document.body.appendChild(mask);
+  const close = () => { mask.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); close(); } };
+  document.addEventListener('keydown', onKey, true);
+  mask.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-x]');
+    if (b || e.target === mask) close();
+  });
+  setStatus('体检：' + list.length + ' 行有问题');
+}
+
+window.CH = { promoteRowFlow: promoteRowFlow, pickChannelDialog: pickChannelDialog, removePatchFlow: removePatchFlow, check: channelCheckFlow };
+const OP_LABEL = { replace: '改', delete: '删', add: '增', noop: '空', conflict: '撞' };
+const opTag = (op) => '<i class="op-tag op-' + op + '">' + (OP_LABEL[op] || op) + '</i>';
+
 /* ---------------- sidebar ---------------- */
+function chBadge(t) {
+  const s = state.channel && state.chSummary[t.name];
+  if (!s) return '';
+  const bits = [];
+  if (s.replace) bits.push('改 ' + s.replace);
+  if (s.del) bits.push('删 ' + s.del);
+  if (s.add) bits.push('增 ' + s.add);
+  if (s.noOp) bits.push('空 ' + s.noOp + '（不生效）');
+  if (s.other) bits.push('未知 Operation ' + s.other);
+  const bad = s.noOp > 0 || s.other > 0;
+  return '<span class="t-ch' + (bad ? ' bad' : '') + '" title="' + esc(state.channel + '：' + bits.join(' · ')) + '">' +
+    (bad ? '!' : '') + s.total + '</span>';
+}
+
 function renderTableList() {
   const f = state.filter.toLowerCase();
-  const list = state.tables.filter((t) => t.name.toLowerCase().includes(f));
+  let list = state.tables.filter((t) => t.name.toLowerCase().includes(f));
+  if (state.channel && state.chOnly) list = list.filter((t) => !!state.chSummary[t.name]);
   $('#table-list').innerHTML = list.map((t) => {
     const low = t.notesRate < 30;
     return '<div class="t-item' + (t.name === state.cur ? ' active' : '') + '" data-t="' + esc(t.name) + '">' +
       '<span class="t-name" title="' + esc(t.name) + '">' + esc(t.name.replace(/^Config_/, '')) + '</span>' +
+      chBadge(t) +
       '<span class="t-rows">' + t.rowCount + '</span>' +
       '<div class="t-bar' + (low ? ' low' : '') + '"><i style="width:' + t.notesRate + '%"></i></div>' +
       '</div>';
   }).join('') || '<div class="empty">无匹配表</div>';
+  const only = $('#ch-only');
+  if (only) {
+    only.hidden = !state.channel;
+    only.classList.toggle('on', !!state.chOnly);
+    only.textContent = '覆盖';
+  }
   sfSync();
 }
 
@@ -131,6 +351,13 @@ $('#table-list').addEventListener('click', (e) => {
   if (el) selectTable(el.dataset.t);
 });
 $('#table-filter').addEventListener('input', (e) => { state.filter = e.target.value; renderTableList(); });
+$('#ch-only').addEventListener('click', () => {
+  state.chOnly = !state.chOnly;
+  renderTableList();
+  setStatus(state.chOnly
+    ? '只看「' + state.channel + '」有覆盖的 ' + Object.keys(state.chSummary).length + ' 张表'
+    : '显示全部 ' + state.tables.length + ' 张表');
+});
 
 /* ---------------- table ---------------- */
 async function selectTable(name) {
@@ -150,12 +377,7 @@ async function selectTable(name) {
     (t.hasSchema ? '' : '<span class="badge">无 schema</span>') +
     (t.increments ? Object.keys(t.increments).map((c) => '<span class="badge ch">' + esc(c) + '</span>').join('') : '') +
     (t.extraKeys.length ? '<span class="badge">' + t.extraKeys.length + ' 个未知字段</span>' : '');
-  const fields = t.fields.filter((f) => !['RowName', 'Notes'].includes(f.name));
-  $('#cur-meta').innerHTML =
-    '<span><b>' + t.rowCount + '</b> 行</span>' +
-    '<span>注释覆盖 <b>' + t.notesRate + '%</b></span>' +
-    '<span><b>' + fields.length + '</b> 个字段</span>' +
-    (t.increments ? '<span>渠道增量 <b>' + Object.entries(t.increments).map(([k, v]) => k + ':' + v).join(' / ') + '</b></span>' : '');
+  renderMeta();
   await loadFills(name);
   await loadRows();
   syncHash(name, null);
@@ -173,11 +395,14 @@ async function loadFills(name) {
 }
 
 async function loadRows() {
-  const r = await DS.page(state.cur, { offset: state.offset, limit: state.limit, q: state.q, filters: state.filters });
+  const r = await DS.page(state.cur, { offset: state.offset, limit: state.limit, q: state.q, filters: state.filters, channel: state.channel });
   state.rows = r.rows;
   state.total = r.total;
+  state.rowOps = r.ops || new Map();
+  state.chStats = r.stats || null;
   renderGrid();
   renderPfChips();
+  renderMeta();
   locateAfterLoad();
 }
 
@@ -439,9 +664,11 @@ function renderGrid() {
     $('#empty').hidden = true;
     $('#grid-body').innerHTML = state.rows.map((row, i) => {
       const abs = state.offset + i;
-      return '<tr data-i="' + abs + '">' + cols.map((c) => {
+      const op = state.channel ? state.rowOps.get(String(row.RowName)) : null;
+      return '<tr data-i="' + abs + '"' + (op ? ' class="op-' + op + '"' : '') + '>' + cols.map((c) => {
         const txt = cellText(c, row);
-        return '<td class="' + (c.kind === 'number' ? 'num' : c.name === 'RowName' ? 'rn' : '') + '" title="' + esc(txt) + '">' + esc(txt) + '</td>';
+        const tag = c.name === 'RowName' && op ? opTag(op) : '';
+        return '<td class="' + (c.kind === 'number' ? 'num' : c.name === 'RowName' ? 'rn' : '') + '" title="' + esc(txt) + '">' + tag + esc(txt) + '</td>';
       }).join('') + '</tr>';
     }).join('');
   }

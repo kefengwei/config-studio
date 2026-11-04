@@ -203,10 +203,15 @@ const DS = (() => {
     const data = JSON.parse(stripBom(text));
     const entry = { text, data };
     files.set(base, entry);
+    /* 淘汰最久没用的那张，但永远保留 current。
+       原写法 `files.delete(first); files.set(first, files.get(first))` 在 delete 之后才 get，
+       取到的是 undefined —— 当前表一旦成为最久未用，缓存里就留下一个 undefined 条目，
+       下一次 open() 命中它直接返回 undefined，上层 `t.data` 就炸了。 */
     while (files.size > MAX_OPEN) {
-      const first = files.keys().next().value;
-      if (first === current) { files.delete(first); files.set(first, files.get(first)); continue; }
-      files.delete(first);
+      let victim = null;
+      for (const k of files.keys()) { if (k !== current) { victim = k; break; } }
+      if (!victim) break;          // 只剩当前表，没有可淘汰的
+      files.delete(victim);
     }
     return entry;
   }
@@ -294,6 +299,7 @@ const DS = (() => {
     added.forEach((n) => dirtyTables.add(n));
     removed.forEach((n) => dirtyTables.add(n));
     fileList = now;
+    invalidateChannels();   // 渠道文件可能整套变了（切分支 / git pull）
     /* pending 是累积的「还没重新读过的表」；本次新增的放 changed/added/removed。
        调用方按 pending 提示，才不会因为快照已更新而丢掉提醒。 */
     return { changed, added, removed, pending: [...dirtyTables] };
@@ -368,14 +374,26 @@ const DS = (() => {
     touch(base);
     const t = await open(base);
     let items = t.data.Items || [];
-    const filters = Array.isArray(o.filters) ? o.filters : [];
-    if (filters.length) items = items.filter((it) => filters.every((f) => matchRowField(it, f)));
+    let ops = null, stats = null;
+    if (o.channel) {
+      const p = await patchOf(o.channel, base);
+      const merged = mergeItems(items, p.data.Items || []);
+      stats = merged.stats;
+      ops = new Map();
+      for (const x of merged.items) {
+        if (x.op) ops.set(String(x.item && x.item.RowName), x.op);
+      }
+      items = merged.items.map((x) => x.item);
+    }
+    if (filters0(o).length) items = items.filter((it) => filters0(o).every((f) => matchRowField(it, f)));
     const q = String(o.q || '').toLowerCase();
     if (q) items = items.filter((it) => JSON.stringify(it).toLowerCase().includes(q));
     const offset = o.offset || 0;
     const limit = Math.min(o.limit || 100, 500);
-    return { total: items.length, offset: offset, limit: limit, filters: filters.length, rows: items.slice(offset, offset + limit) };
+    return { total: items.length, offset: offset, limit: limit, filters: filters0(o).length, rows: items.slice(offset, offset + limit), ops: ops, stats: stats };
   }
+
+  function filters0(o) { return Array.isArray(o.filters) ? o.filters : []; }
 
   async function fill(name) {
     const base = baseName(name);
@@ -581,6 +599,260 @@ const DS = (() => {
     return r;
   }
 
+  /* ---------- 渠道覆盖（Config_<表>.<渠道>.json） ----------
+     服务端语义（DoriDori.Backend.Admin/Services/ConfigCacheService.cs:516 ApplyConfigPatchItems）：
+       Add     基础表没有这个 RowName 才追加；已存在则报错跳过
+       Replace 整行替换（不是字段级 merge），并去掉 Operation 字段
+       Delete  按 RowName 删除整行
+       缺 Operation 整行跳过；同一文件里 RowName 重复时这些行全被忽略
+     行名比较用 OrdinalIgnoreCase。 */
+  const CH_RE = /^Config_([A-Za-z]+)[.](.+)[.]json$/;
+  let channelList = null;             // [{ name, files: [{ table, file }] }]
+  const patches = new Map();          // channel/table -> { text, data, missing }
+
+  function scanChannels() {
+    const byName = new Map();
+    for (const f of fileList) {
+      const m = CH_RE.exec(f.name);
+      if (!m) continue;
+      const ch = m[2], table = m[1];
+      if (!byName.has(ch)) byName.set(ch, []);
+      byName.get(ch).push({ table: table, file: f.name });
+    }
+    const out = [];
+    for (const pair of byName) {
+      out.push({ name: pair[0], files: pair[1].sort((a, b) => (a.table < b.table ? -1 : 1)) });
+    }
+    out.sort((a, b) => (a.name < b.name ? -1 : 1));
+    return out;
+  }
+
+  async function listChannels() {
+    if (channelList) return channelList;
+    channelList = scanChannels();
+    return channelList;
+  }
+
+  /* 渠道文件清单/内容都要作废：git pull 或新建渠道文件之后调 */
+  function invalidateChannels() {
+    channelList = null;
+    patches.clear();
+  }
+
+  /* table 参数两种写法都收："Config_Task" 或 "Task"（scanChannels 里存的是后者） */
+  const normTable = (t) => (String(t).indexOf('Config_') === 0 ? String(t) : 'Config_' + t);
+  const patchName = (channel, table) => normTable(table) + '.' + channel + '.json';
+
+  async function patchOf(channel, table) {
+    const key = channel + '/' + normTable(table);
+    if (patches.has(key)) {
+      const hit = patches.get(key);
+      patches.delete(key); patches.set(key, hit);   // LRU 触达
+      return hit;
+    }
+    let entry;
+    try {
+      const text = await readText(patchName(channel, table));
+      entry = { text: text, data: JSON.parse(stripBom(text)), missing: false };
+    } catch (e) {
+      entry = { text: null, data: { Items: [] }, missing: true };   // 这个渠道还没覆盖过这张表
+    }
+    patches.set(key, entry);
+    while (patches.size > 40) patches.delete(patches.keys().next().value);
+    return entry;
+  }
+
+  function stripOp(it) {
+    if (!it || typeof it !== 'object') return it;
+    if (it.Operation === undefined) return it;
+    const copy = Object.assign({}, it);
+    delete copy.Operation;
+    return copy;
+  }
+
+  /* 基础行 + 补丁行 → 生效内容。op: null | replace | add | delete；delete 行带 ghost=真 */
+  function mergeItems(baseItems, patchItems) {
+    const byName = new Map();
+    const dup = new Set();
+    for (const it of patchItems || []) {
+      if (!it || typeof it !== 'object') continue;
+      const rn = it.RowName == null ? '' : String(it.RowName);
+      if (!rn) continue;
+      const k = rn.toLowerCase();
+      if (byName.has(k)) { dup.add(k); continue; }
+      byName.set(k, it);
+    }
+    for (const k of dup) byName.delete(k);
+    const stats = { replace: 0, add: 0, del: 0, noOp: 0, dup: dup.size, conflict: 0, miss: 0 };
+    const items = [];
+    const used = new Set();
+    for (const it of baseItems || []) {
+      if (!it || typeof it !== 'object') { items.push({ item: it, op: null }); continue; }
+      const k = String(it.RowName == null ? '' : it.RowName).toLowerCase();
+      const p = byName.get(k);
+      if (!p) { items.push({ item: it, op: null }); continue; }
+      used.add(k);
+      const op = String(p.Operation || '').trim();
+      if (op === 'Replace') { stats.replace++; items.push({ item: stripOp(p), op: 'replace' }); }
+      else if (op === 'Delete') { stats.del++; items.push({ item: it, op: 'delete', ghost: true }); }
+      else if (op === 'Add') { stats.conflict++; items.push({ item: it, op: 'conflict' }); }
+      else { stats.noOp++; items.push({ item: it, op: 'noop' }); }
+    }
+    for (const pair of byName) {
+      const k = pair[0], p = pair[1];
+      if (used.has(k)) continue;
+      const op = String(p.Operation || '').trim();
+      if (op === 'Add') { stats.add++; items.push({ item: stripOp(p), op: 'add' }); }
+      else stats.miss++;
+    }
+    return { items: items, stats: stats, dupNames: dup };
+  }
+
+  /* 每个渠道里各张表有多少条补丁、按 Operation 分布。侧栏角标用，不读基础表，只读补丁文件 */
+  async function channelSummary(channel) {
+    const out = {};
+    const chans = await listChannels();
+    const c = chans.find((x) => x.name === channel);
+    if (!c) return out;
+    for (const f of c.files) {
+      const t = normTable(f.table);
+      const p = await patchOf(channel, t);
+      const s = { replace: 0, del: 0, add: 0, noOp: 0, other: 0, total: 0 };
+      for (const it of p.data.Items || []) {
+        if (!it || typeof it !== "object") continue;
+        s.total++;
+        const op = String(it.Operation || "").trim();
+        if (op === "Replace") s.replace++;
+        else if (op === "Delete") s.del++;
+        else if (op === "Add") s.add++;
+        else if (!op) s.noOp++;
+        else s.other++;
+      }
+      out[t] = s;
+    }
+    return out;
+  }
+
+  /* 渠道合并后按 RowName 反查补丁行（渠道视图/右栏对比用） */
+  async function patchMap(channel, table) {
+    const p = await patchOf(channel, table);
+    const m = new Map();
+    for (const it of p.data.Items || []) {
+      if (!it || typeof it !== 'object' || !it.RowName) continue;
+      m.set(String(it.RowName).toLowerCase(), it);
+    }
+    return { map: m, entry: p };
+  }
+
+  /* ---------------- 渠道覆盖文件：写盘 ----------------
+     渠道文件不存在时自动新建（第一次提覆盖就是新建）。
+     Replace 是「整行替换」，所以补丁行必须带完整字段，不能只写改动的那个。 */
+  async function saveChannel(channel, table, items) {
+    const tbl = normTable(table);
+    const fn = patchName(channel, tbl);
+    const key = channel + '/' + tbl;
+    const doc = { $schema: '../json-schemas/' + tbl + '.json', ConfigName: tbl, Items: items || [] };
+    const after = JSON.stringify(doc, null, 2);
+    /* 冲突检测：打开之后补丁文件可能被 git pull / 切分支改过 */
+    const cached = patches.has(key) ? patches.get(key).text : null;
+    let disk = null;
+    try { disk = await readText(fn); } catch (e) { disk = null; }
+    if (cached !== null && cached !== disk) {
+      patches.delete(key);
+      const err = new Error('磁盘上的 ' + fn + ' 已经变了（git pull / 切分支 / 别人改过）。为避免覆盖，本次没有写入。');
+      err.conflict = true;
+      throw err;
+    }
+    let r;
+    if (invoke) {
+      try { r = { ok: true, backup: (await invoke('save_file', { name: fn, contents: after })).backup }; }
+      catch (e) { throw new Error('写入失败：' + e); }
+    } else {
+      const res = await fetch('/api/save?name=' + encodeURIComponent(fn), { method: 'POST', body: after });
+      r = await res.json();
+      if (!res.ok || !r.ok) throw new Error((r && r.error) || '写入失败');
+    }
+    patches.delete(key);
+    channelList = null;
+    try { fileList = (await listTables()).tables || fileList; } catch (e) { }
+    return { ok: true, file: fn, created: disk === null, backup: r.backup, rows: (items || []).length };
+  }
+
+  /* 把基础表的一整行提成某渠道的覆盖行（已覆盖则原位替换）。返回写入结果 */
+  async function promoteRow(channel, table, row, op) {
+    const p = await patchOf(channel, table);
+    const items = (p.data.Items || []).filter((x) => x && typeof x === 'object').slice();
+    const rn = String((row && row.RowName) || '');
+    if (!rn) throw new Error('这行没有 RowName');
+    const patch = { Operation: op === 'add' ? 'Add' : 'Replace' };
+    for (const k of Object.keys(row)) if (k !== 'Operation') patch[k] = row[k];
+    const lc = rn.toLowerCase();
+    const i = items.findIndex((x) => String(x.RowName || '').toLowerCase() === lc);
+    const existed = i >= 0;
+    if (existed) items[i] = patch; else items.push(patch);
+    const r = await saveChannel(channel, table, items);
+    return Object.assign(r, { replaced: existed, rowName: rn });
+  }
+
+  /* 渠道体检：把 14 个覆盖文件里所有「不会生效」或「指向不存在目标」的行找出来。
+     判据与服务端 ConfigCacheService 一致：缺 Operation 整行跳过、Replace/Delete 找不到目标、
+     Add 撞基础表、同一文件里 RowName 重复则全部忽略。 */
+  async function checkAllChannels() {
+    const chans = await listChannels();
+    const out = [];
+    const baseCache = new Map();
+    const rowSetOf = async (table) => {
+      const base = normTable(table);
+      if (!baseCache.has(base)) {
+        let set = new Set();
+        try {
+          const d = await open(base);
+          set = new Set((d.data.Items || []).map((x) => String((x && x.RowName) || '').toLowerCase()));
+        } catch (e) { /* 表不存在时按空集处理 */ }
+        baseCache.set(base, set);
+      }
+      return baseCache.get(base);
+    };
+    for (const ch of chans) {
+      for (const t of ch.files) {
+        const p = await patchOf(ch.name, t.table);
+        const items = p.data.Items || [];
+        const rows = await rowSetOf(t.table);
+        const seen = new Map();
+        for (const it of items) {
+          const lc = String((it && it.RowName) || '').toLowerCase();
+          seen.set(lc, (seen.get(lc) || 0) + 1);
+        }
+        for (const it of items) {
+          const rn = String((it && it.RowName) || '');
+          const lc = rn.toLowerCase();
+          const op = String((it && it.Operation) || '').toLowerCase();
+          const hit = rows.has(lc);
+          let issue = null;
+          if (!op) issue = 'noOp';
+          else if (op !== 'add' && op !== 'replace' && op !== 'delete') issue = 'badOp';
+          else if ((seen.get(lc) || 0) > 1) issue = 'dup';
+          else if (op === 'replace' && !hit) issue = 'miss';
+          else if (op === 'delete' && !hit) issue = 'miss';
+          else if (op === 'add' && hit) issue = 'conflict';
+          if (issue) out.push({ channel: ch.name, table: normTable(t.table), rowName: rn, op: op || '', issue: issue });
+        }
+      }
+    }
+    const order = { noOp: 0, badOp: 1, dup: 2, miss: 3, conflict: 4 };
+    out.sort((a, b) => (order[a.issue] - order[b.issue]) || a.channel.localeCompare(b.channel) || a.rowName.localeCompare(b.rowName));
+    return out;
+  }
+
+  /* 从渠道补丁里去掉这一行：覆盖过的回到基础表内容，被删掉的重新出现 */
+  async function removePatchRow(channel, table, rowName) {
+    const p = await patchOf(channel, table);
+    const lc = String(rowName || '').toLowerCase();
+    const items = (p.data.Items || []).filter((x) => String((x && x.RowName) || '').toLowerCase() !== lc);
+    if (items.length === (p.data.Items || []).length) return { ok: false, reason: '补丁里没有这一行' };
+    const r = await saveChannel(channel, table, items);
+    return Object.assign(r, { removed: true, rowName: rowName });
+  }
   /* ---------- 列编辑：按路径模式展开成二维网格 ---------- */
   function matchCond(item, cond) {
     if (!item || typeof item !== 'object') return false;
@@ -787,6 +1059,7 @@ const DS = (() => {
 
   return {
     init, open, page, fill, search, refs, preview, apply, backups, undo, column, ping, invalidate, checkDisk, diskDirty, schemaStamp,
+    listChannels, patchOf, patchMap, channelSummary, patchName, mergeItems, saveChannel, promoteRow, removePatchRow, checkAllChannels, channelText: (c, t) => patchOf(c, t).then((x) => x.text), invalidateChannels,
     findRefsTo: findRefsTo, loadAll: loadAll,
     notes: ensureNotes, rowNames, hasRow, labelOf, textOf, matchRowField,
     get sem() { return SEM; },

@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-11-02T05:51:28.538Z",
+ "generatedAt": "2026-11-04T05:10:55.225Z",
  "source": {
   "configDir": "configs",
   "schemaDir": "json-schemas",
@@ -7,7 +7,7 @@
  },
  "stats": {
   "tables": 95,
-  "rows": 7634,
+  "rows": 7593,
   "actuators": 52,
   "polyEntries": 127,
   "refFields": 61,
@@ -259,20 +259,19 @@
  "refTargets": {
   "EmailReminderRowName": {
    "target": "Config_EmailReminder",
-   "confidence": 0.5,
+   "confidence": 1,
    "hits": 1,
-   "total": 2,
+   "total": 1,
    "reason": "naming",
    "sample": [
-    "Email_ActivityFinished",
-    "undefined"
+    "Email_ActivityFinished"
    ]
   },
   "ConditionRowName": {
    "target": "Config_Condition",
-   "confidence": 0.993,
+   "confidence": 1,
    "hits": 147,
-   "total": 148,
+   "total": 147,
    "reason": "naming",
    "sample": [
     "10005",
@@ -465,8 +464,8 @@
   "StatisticRowName": {
    "target": "Config_Statistic",
    "confidence": 1,
-   "hits": 269,
-   "total": 269,
+   "hits": 270,
+   "total": 270,
    "reason": "naming",
    "sample": [
     "MainLevel_Progress",
@@ -560,9 +559,9 @@
   },
   "ItemRowName": {
    "target": "Config_CatalogItem",
-   "confidence": 0.8,
-   "hits": 8,
-   "total": 10,
+   "confidence": 0.818,
+   "hits": 9,
+   "total": 11,
    "reason": "data",
    "sample": [
     "Test1",
@@ -1270,7 +1269,7 @@
      "desc": "物品行RowName",
      "target": "Config_CatalogItem",
      "confidence": 1,
-     "samples": 174
+     "samples": 177
     },
     "Count": {
      "type": "integer",
@@ -1607,7 +1606,7 @@
      "desc": "指定统计的RowName",
      "target": "Config_Statistic",
      "confidence": 1,
-     "samples": 25
+     "samples": 22
     },
     "Value": {
      "type": "number",
@@ -2087,7 +2086,7 @@
      "desc": "统计表RowName",
      "target": "Config_Statistic",
      "confidence": 1,
-     "samples": 255
+     "samples": 258
     }
    },
    "definedIn": "Config_Condition"
@@ -2296,7 +2295,7 @@
      "desc": "",
      "target": "Config_CatalogItem",
      "confidence": 1,
-     "samples": 24
+     "samples": 23
     }
    },
    "definedIn": "Config_Statistic"
@@ -3241,9 +3240,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3311,9 +3310,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -3450,9 +3449,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     }
@@ -3533,9 +3532,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3697,9 +3696,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -3882,9 +3881,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件行名称"
     }
@@ -4073,8 +4072,8 @@
   },
   "Config_CatalogItem": {
    "name": "Config_CatalogItem",
-   "rowCount": 298,
-   "notesFilled": 298,
+   "rowCount": 299,
+   "notesFilled": 299,
    "notesRate": 100,
    "fields": [
     {
@@ -4374,8 +4373,8 @@
   },
   "Config_Condition": {
    "name": "Config_Condition",
-   "rowCount": 412,
-   "notesFilled": 412,
+   "rowCount": 414,
+   "notesFilled": 414,
    "notesRate": 100,
    "fields": [
     {
@@ -4548,9 +4547,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -4602,9 +4601,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -4966,9 +4965,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -4997,9 +4996,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -5010,8 +5009,8 @@
   },
   "Config_GameFeature": {
    "name": "Config_GameFeature",
-   "rowCount": 64,
-   "notesFilled": 64,
+   "rowCount": 65,
+   "notesFilled": 65,
    "notesRate": 100,
    "fields": [
     {
@@ -5030,9 +5029,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     }
@@ -5075,9 +5074,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5102,9 +5101,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -5193,9 +5192,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5218,9 +5217,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     },
@@ -5395,8 +5394,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 269,
-     "total": 269,
+     "hits": 270,
+     "total": 270,
      "implicit": false,
      "desc": "统计RowName"
     },
@@ -5474,9 +5473,9 @@
      "name": "ItemRowName",
      "kind": "ref",
      "target": "Config_CatalogItem",
-     "confidence": 0.8,
-     "hits": 8,
-     "total": 10,
+     "confidence": 0.818,
+     "hits": 9,
+     "total": 11,
      "implicit": false,
      "desc": "道具行名称"
     }
@@ -5522,9 +5521,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     },
@@ -5532,9 +5531,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -5649,9 +5648,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -5745,9 +5744,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "解锁条件"
     },
@@ -5931,9 +5930,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6052,9 +6051,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6162,9 +6161,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6279,9 +6278,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6383,9 +6382,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6487,9 +6486,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -6591,9 +6590,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，没有为无前置条件"
     },
@@ -7006,9 +7005,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件行名称"
     },
@@ -7079,9 +7078,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -7110,9 +7109,9 @@
      "name": "EmailReminderRowName",
      "kind": "ref",
      "target": "Config_EmailReminder",
-     "confidence": 0.5,
+     "confidence": 1,
      "hits": 1,
-     "total": 2,
+     "total": 1,
      "implicit": false,
      "desc": "是否到期前邮件提醒"
     }
@@ -7153,9 +7152,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "在新手引导这里, 如果ConditionRowName为空, 表示不需要根据条件来激活新手引导"
     }
@@ -7196,9 +7195,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -7263,9 +7262,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -7644,9 +7643,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -7686,8 +7685,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 269,
-     "total": 269,
+     "hits": 270,
+     "total": 270,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -7766,9 +7765,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -7808,8 +7807,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 269,
-     "total": 269,
+     "hits": 270,
+     "total": 270,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -7873,9 +7872,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -7915,8 +7914,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 269,
-     "total": 269,
+     "hits": 270,
+     "total": 270,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -8047,9 +8046,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -8089,8 +8088,8 @@
      "kind": "ref",
      "target": "Config_Statistic",
      "confidence": 1,
-     "hits": 269,
-     "total": 269,
+     "hits": 270,
+     "total": 270,
      "implicit": false,
      "desc": "统计行名称 - 用于统计排行榜的数据"
     },
@@ -8215,9 +8214,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件"
     },
@@ -8550,9 +8549,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称"
     },
@@ -8730,9 +8729,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "关联的条件行名称，TriggerCatalogItem 只能填一个"
     },
@@ -8741,6 +8740,11 @@
      "kind": "poly",
      "desc": "玩家背包物品触发，与ConditionRowName 只能填一个",
      "variants": 2
+    },
+    {
+     "name": "Once",
+     "kind": "bool",
+     "desc": "是否只触发一次；true 时结束后不再重新激活"
     },
     {
      "name": "ActivateActuators",
@@ -8803,8 +8807,8 @@
   "Config_PrivilegeCard": {
    "name": "Config_PrivilegeCard",
    "rowCount": 6,
-   "notesFilled": 5,
-   "notesRate": 83,
+   "notesFilled": 6,
+   "notesRate": 100,
    "fields": [
     {
      "name": "RowName",
@@ -8947,9 +8951,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     },
@@ -8979,8 +8983,8 @@
   },
   "Config_RandomActuator": {
    "name": "Config_RandomActuator",
-   "rowCount": 142,
-   "notesFilled": 78,
+   "rowCount": 143,
+   "notesFilled": 79,
    "notesRate": 55,
    "fields": [
     {
@@ -9090,9 +9094,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件行名称"
     }
@@ -9365,9 +9369,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件行名称"
     },
@@ -9459,8 +9463,8 @@
   },
   "Config_Statistic": {
    "name": "Config_Statistic",
-   "rowCount": 296,
-   "notesFilled": 152,
+   "rowCount": 300,
+   "notesFilled": 153,
    "notesRate": 51,
    "fields": [
     {
@@ -9517,9 +9521,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     }
@@ -9627,9 +9631,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": ""
     }
@@ -9709,9 +9713,9 @@
   },
   "Config_Task": {
    "name": "Config_Task",
-   "rowCount": 553,
-   "notesFilled": 462,
-   "notesRate": 84,
+   "rowCount": 503,
+   "notesFilled": 412,
+   "notesRate": 82,
    "fields": [
     {
      "name": "RowName",
@@ -9785,9 +9789,9 @@
      "name": "ConditionRowName",
      "kind": "ref",
      "target": "Config_Condition",
-     "confidence": 0.993,
+     "confidence": 1,
      "hits": 147,
-     "total": 148,
+     "total": 147,
      "implicit": false,
      "desc": "条件行名称"
     },

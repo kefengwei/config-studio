@@ -14,7 +14,7 @@ try {
 } catch (e) {}
 </script>
 <title>配置工作台 · Config Studio</title>
-<link rel="stylesheet" href="/assets/app.css?vmvyuclv3" />
+<link rel="stylesheet" href="/assets/app.css?vmw1ns5vo" />
 </head>
 <body>
 
@@ -95,11 +95,17 @@ try {
       <span>配置表</span>
       <span class="side-count" id="table-count">—</span>
     </div>
+    <div class="ch-bar" id="ch-bar" hidden>
+      <label class="ch-lab" for="ch-sel">视角</label>
+      <select id="ch-sel" title="基础表：不叠加任何渠道补丁"></select>
+      <button class="btn ch-check" id="ch-check" title="扫一遍所有渠道覆盖文件，把不会生效的行列出来">体检</button>
+    </div>
     <div class="side-filter">
       <span class="sf-wrap">
         <input id="table-filter" type="search" placeholder="筛选表名…" autocomplete="off" class="w-full" />
         <button class="sf-x" type="button" data-sf-clear hidden title="清除（Esc）">×</button>
       </span>
+      <button class="ch-only" id="ch-only" type="button" hidden title="只看这个渠道有覆盖的表">覆盖</button>
     </div>
     <div id="table-list" class="table-list flex-1 overflow-y-auto min-h-0"></div>
   </aside>
@@ -174,20 +180,20 @@ try {
   <span class="hint">本地服务 · 数据直接在仓库文件上编辑</span>
 </footer>
 
-<script src="/assets/boot.js?vmvyuclv3"></script>
-<script src="/assets/json-edit.js?vmvyuclv3"></script>
-<script src="/assets/json-diff.js?vmvyuclv3"></script>
-<script src="/assets/sem-from-schema.js?vmvyuclv3"></script>
-<script src="/assets/data.js?vmvyuclv3"></script>
-<script src="/assets/ref-picker.js?vmvyuclv3"></script>
-<script src="/assets/layout.js?vmvyuclv3"></script>
-<script src="/assets/update.js?vmvyuclv3"></script>
-<script src="/assets/settings.js?vmvyuclv3"></script>
-<script src="/assets/app.js?vmvyuclv3"></script>
-<script src="/assets/struct-editor.js?vmvyuclv3"></script>
-<script src="/assets/edit.js?vmvyuclv3"></script>
-<script src="/assets/column-editor.js?vmvyuclv3"></script>
-<script src="/assets/shortcuts.js?vmvyuclv3"></script>
-<script src="/assets/git.js?vmvyuclv3"></script>
+<script src="/assets/boot.js?vmw1ns5vo"></script>
+<script src="/assets/json-edit.js?vmw1ns5vo"></script>
+<script src="/assets/json-diff.js?vmw1ns5vo"></script>
+<script src="/assets/sem-from-schema.js?vmw1ns5vo"></script>
+<script src="/assets/data.js?vmw1ns5vo"></script>
+<script src="/assets/ref-picker.js?vmw1ns5vo"></script>
+<script src="/assets/layout.js?vmw1ns5vo"></script>
+<script src="/assets/update.js?vmw1ns5vo"></script>
+<script src="/assets/settings.js?vmw1ns5vo"></script>
+<script src="/assets/app.js?vmw1ns5vo"></script>
+<script src="/assets/struct-editor.js?vmw1ns5vo"></script>
+<script src="/assets/edit.js?vmw1ns5vo"></script>
+<script src="/assets/column-editor.js?vmw1ns5vo"></script>
+<script src="/assets/shortcuts.js?vmw1ns5vo"></script>
+<script src="/assets/git.js?vmw1ns5vo"></script>
 </body>
 </html>

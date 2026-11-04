@@ -68,6 +68,7 @@ function mountEditBar() {
   // 新增行：和编辑一样先进队列，底部「预览并保存」统一写盘
   const newBtn = document.getElementById('btn-new-row');
   if (newBtn) newBtn.addEventListener('click', () => {
+    if (blockInChannel('新增')) return;
     const t = state.sem.tables[state.cur];
     if (!t) return;
     EP.detailMode = 'new';
@@ -867,6 +868,27 @@ function applyForm(row, t) {
   if (bad.length) { uiAlert('有字段无法解析', bad.join('\n')); return; }
   // undefined 表示「删除该字段」—— 原型阶段不支持删除字段，跳过
   for (const k of Object.keys(patch)) if (patch[k] === undefined) delete patch[k];
+  /* 渠道视角：改动只写进补丁文件（Replace / Add 整行替换），不进基础表的待保存队列 */
+  if (state.channel) {
+    EP.detailMode = 'view';
+    EP.editRow = null;
+    EP.draft = null;
+    EP.editShown = null;
+    const merged = Object.assign({}, row, patch);
+    const op = state.rowOps.get(String(row.RowName)) || 'replace';
+    setStatus('正在写入「' + state.channel + '」的覆盖…');
+    DS.promoteRow(state.channel, state.cur, merged, op).then(async () => {
+      await loadRows();
+      const fresh = (state.rows || []).find((x) => x.RowName === row.RowName) || null;
+      renderDetail(fresh);
+      setStatus('已更新「' + state.channel + '」的覆盖：' + row.RowName);
+    }).catch((e) => {
+      EP.detailMode = 'edit';
+      EP.editRow = row.RowName;
+      uiAlert('保存失败', String((e && e.message) || e));
+    });
+    return;
+  }
   EP.detailMode = 'view';
   EP.editRow = null;
   EP.draft = null;
@@ -884,10 +906,24 @@ function applyForm(row, t) {
 }
 
 
+/* ---------------- 渠道视角的写盘守卫 ----------------
+   视角 = 基础表 + 某渠道的覆盖。新增 / 复制 / 删除都只会写基础表文件（Config_X.json），
+   会影响到所有渠道，所以在渠道视角下直接拦下来，避免「以为只改了本渠道」。 */
+function blockInChannel(what) {
+  if (!state.channel) return false;
+  setStatus('渠道视角下不能' + what + '基础表 · 切回「基础表」');
+  uiAlert('渠道视角下不能' + what + '基础表行',
+    '你正在看「' + state.channel + '」视角：表格 = 基础表 + 该渠道的覆盖。\n\n' +
+    what + '操作只会写进 Config_X.json（基础表），会影响到所有渠道，所以在渠道视角下禁用。\n\n' +
+    '要动基础表，把左上角「视角」切回「基础表」。');
+  return true;
+}
+
 /* ---------------- 复制行 ----------------
    以选中行为模板开一张「新增行」表单：字段预填模板值，RowName 留空。
    入队仍然是 append op，和其它新增共用一次 diff 预览 + 一次写盘。 */
 function copyRowFlow(row) {
+  if (blockInChannel('复制')) return;
   const t = state.sem.tables[state.cur];
   if (!t) return;
   if (!row) { setStatus('先在中间表格里选一行，再点「复制行」'); return; }
@@ -909,6 +945,7 @@ function copySelectedRow() {
 /* 点「删除本行」不写盘、也不弹窗：和编辑一样先进待保存队列，
    底部「预览并保存」统一过 diff 才落盘。引用扫描在后台跑，结果进 diff 弹窗的提示区。 */
 async function deleteRowFlow(row) {
+  if (blockInChannel('删除')) return;
   const t = state.sem.tables[state.cur];
   if (!t) return;
   const name = row.RowName;
@@ -974,6 +1011,61 @@ window.renderDetail = function (row) {
     return;
   }
 
+  /* ---------------- 渠道视角 ----------------
+     写盘安全策略：主表格永远只改基础表，渠道改动只能在这里做。
+     所以渠道视角下不提供「编辑本行」（那会悄悄改基础表），只给覆盖相关的操作。 */
+  if (state.channel) {
+    const op = state.rowOps.get(String(row.RowName));
+    if (op === 'delete') {
+      const note = document.createElement('div');
+      note.className = 'd-del-note';
+      note.innerHTML = '<b>「' + esc(state.channel) + '」删除了这一行</b>' +
+        '<span>这个渠道读不到它，其它渠道不受影响</span>';
+      const undo = document.createElement('button');
+      undo.className = 'btn';
+      undo.textContent = '撤销渠道删除';
+      undo.onclick = () => window.CH && window.CH.removePatchFlow(row);
+      wrap.appendChild(undo);
+      head.appendChild(wrap);
+      head.appendChild(note);
+      return;
+    }
+    if (op === 'replace' || op === 'add') {
+      const badge = document.createElement('div');
+      badge.className = 'd-del-note';
+      badge.innerHTML = '<b>「' + esc(state.channel) + '」的' + (op === 'add' ? '新增行' : '覆盖行') + '</b>' +
+        '<span>改动只写进 ' + esc(DS.patchName(state.channel, state.cur)) + '，不动基础表</span>';
+      const editC = document.createElement('button');
+      editC.className = 'btn primary';
+      editC.title = '编辑这个渠道的覆盖内容（E）';
+      editC.innerHTML = '编辑覆盖 <kbd>E</kbd>';
+      editC.onclick = () => { EP.detailMode = 'edit'; EP.editRow = row.RowName; renderEditForm(row); };
+      const undo = document.createElement('button');
+      undo.className = 'btn danger';
+      undo.title = '删掉这个渠道对它的覆盖，回到基础表内容';
+      undo.textContent = '撤销覆盖';
+      undo.onclick = () => window.CH && window.CH.removePatchFlow(row);
+      wrap.appendChild(editC);
+      wrap.appendChild(undo);
+      head.appendChild(wrap);
+      head.appendChild(badge);
+      return;
+    }
+    /* 这一行没被该渠道覆盖：只给「提为覆盖」 */
+    const note2 = document.createElement('div');
+    note2.className = 'd-del-note';
+    note2.innerHTML = '<span>这一行在「' + esc(state.channel) + '」里直接读基础表，没有覆盖</span>';
+    const prom2 = document.createElement('button');
+    prom2.className = 'btn';
+    prom2.title = '把这一行整行写进「' + state.channel + '」的覆盖文件';
+    prom2.textContent = '提为覆盖';
+    prom2.onclick = () => window.CH && window.CH.promoteRowFlow(row);
+    wrap.appendChild(prom2);
+    head.appendChild(wrap);
+    head.appendChild(note2);
+    return;
+  }
+
   const editBtn = document.createElement('button');
   editBtn.className = 'btn primary';
   editBtn.title = '编辑本行（E）';
@@ -994,6 +1086,15 @@ window.renderDetail = function (row) {
 
   wrap.appendChild(editBtn);
   wrap.appendChild(copyBtn);
+  /* 只在基础视角出现：把这一整行提成某个渠道的覆盖 */
+  if (!state.channel) {
+    const promBtn = document.createElement('button');
+    promBtn.className = 'btn';
+    promBtn.title = '把这一行整行写进某个渠道的覆盖文件（只影响该渠道）';
+    promBtn.textContent = '提为覆盖';
+    promBtn.onclick = () => window.CH && window.CH.promoteRowFlow(row);
+    wrap.appendChild(promBtn);
+  }
   wrap.appendChild(delBtn);
   head.appendChild(wrap);
   syncCopyBtn();

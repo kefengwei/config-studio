@@ -431,7 +431,25 @@ body.col-resizing .detail-grip { pointer-events: auto; }
   background: var(--panel-2); border: 1px solid var(--line);
   border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums;
 }
-.side-filter { padding: 0 12px 10px; }
+/* 视角：基础表 / 渠道覆盖。仓库里没有渠道补丁文件时整条隐藏 */
+.ch-bar { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px; }
+.ch-bar[hidden] { display: none; }
+.ch-lab { flex: none; font-size: 11.5px; color: var(--ink-3); }
+.ch-bar select {
+  flex: 1 1 auto; min-width: 0;
+  flex: 1 1 auto; min-width: 0; height: 28px; padding: 0 22px 0 7px;
+  border: 1px solid var(--field-line); border-radius: var(--r-sm);
+  background-color: var(--ctl-bg); color: var(--ink); font: 12px/1 var(--mono);
+  cursor: pointer; -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 12px) 50%, calc(100% - 8px) 50%;
+  background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;
+}
+.ch-bar select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+.ch-bar.on .ch-lab { color: var(--accent); font-weight: 600; }
+.ch-bar.on select { border-color: var(--accent); color: var(--accent); }
+.side-filter { padding: 0 12px 10px; display: flex; align-items: center; gap: 6px; }
+.side-filter .sf-wrap { flex: 1 1 auto; }
 
 /* 搜索框 + 自绘清除按钮（原生 type=search 的 × 在深浅两套主题下不一致，统一关掉自己画） */
 .sf-wrap { position: relative; display: flex; align-items: center; width: 100%; min-width: 0; }
@@ -458,7 +476,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 }
 .table-list { overflow-y: auto; flex: 1; padding: 0 8px 14px; }
 .t-item {
-  display: grid; grid-template-columns: 1fr auto; gap: 1px 8px;
+  display: grid; grid-template-columns: 1fr auto auto; gap: 1px 6px;
   padding: 7px 9px; border-radius: var(--r-sm); cursor: pointer;
   border-left: 2px solid transparent; margin-bottom: 1px;
   transition: background .1s;
@@ -475,6 +493,26 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 .t-bar { grid-column: 1 / -1; height: 2px; border-radius: 2px; background: var(--line-soft); overflow: hidden; margin-top: 5px; }
 .t-bar i { display: block; height: 100%; border-radius: 2px; background: var(--line-strong); }
 .t-bar.low i { background: var(--warn); opacity: .55; }
+/* 渠道视角：侧栏标出这张表在该渠道里有多少条覆盖，以及「只看有覆盖」开关 */
+.t-ch {
+  font-size: 10px; font-weight: 600; line-height: 15px; padding: 0 5px; border-radius: 999px;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.t-ch.bad {
+  color: var(--warn-ink);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 36%, transparent);
+}
+.ch-only {
+  flex: 0 0 auto; height: 28px; padding: 0 8px; cursor: pointer;
+  border: 1px solid var(--field-line); border-radius: var(--r-sm);
+  background: var(--btn-bg); color: var(--ink-2);
+  font: 11.5px/1 var(--sans); white-space: nowrap;
+}
+.ch-only:hover { border-color: var(--ink-3); color: var(--ink); }
+.ch-only.on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 600; }
+.ch-only[hidden] { display: none; }
 
 /* ---------- center ---------- */
 .center { background: var(--bg); }
@@ -588,6 +626,37 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; a
 .cfg-grid tbody tr:hover td { background: var(--row-hover); }
 .cfg-grid tbody tr.sel td { background: var(--sel-bg); }
 .cfg-grid tbody tr.sel td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+/* 渠道覆盖行：改=蓝、增=绿、删=红，行首一条 2px 竖线；删除行整行变灰并加删除线 */
+.cfg-grid tbody tr.op-replace td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.cfg-grid tbody tr.op-add td:first-child { box-shadow: inset 2px 0 0 var(--ok-ink); }
+.cfg-grid tbody tr.op-delete td { color: var(--ink-3); }
+.cfg-grid tbody tr.op-delete td:first-child { box-shadow: inset 2px 0 0 var(--bad-ink); }
+.cfg-grid tbody tr.op-noop td:first-child { box-shadow: inset 2px 0 0 var(--line-strong); }
+.cfg-grid tbody tr.op-conflict td:first-child { box-shadow: inset 2px 0 0 var(--warn); }
+.cfg-grid tbody tr.op-delete td:first-child { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--bad-ink) 55%, transparent); }
+.op-tag {
+  display: inline-block; margin-right: 6px; padding: 0 4px; border-radius: 3px;
+  font: 600 10px/15px var(--mono); font-style: normal; vertical-align: 1px;
+}
+.op-tag.op-replace { background: var(--accent-soft); color: var(--accent); }
+.op-tag.op-delete { background: color-mix(in srgb, var(--bad-ink) 14%, transparent); color: var(--bad-ink); }
+.op-tag.op-add { background: color-mix(in srgb, var(--ok-ink) 14%, transparent); color: var(--ok-ink); }
+.op-tag.op-noop { background: var(--panel-2); color: var(--ink-3); border: 1px solid var(--line); }
+.op-tag.op-conflict { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn-ink); }
+/* 「提为渠道覆盖」的渠道选择列表 */
+.cfm.pick { width: 380px; }
+.pick-list { display: flex; flex-direction: column; gap: 6px; }
+.pick-item {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border: 1px solid var(--field-line); border-radius: var(--r-sm);
+  background: var(--ctl-bg); color: var(--ink); text-align: left; cursor: pointer;
+}
+.pick-item:hover, .pick-item:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+.pick-item b { font: 600 12.5px var(--mono); }
+.pick-item i { font-style: normal; font-size: 11px; color: var(--ink-3); }
+#cur-meta .ch-meta { color: var(--ink-3); }
+#cur-meta .ch-warn { color: var(--warn-ink); font-weight: 600; }
+
 .cfg-grid td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 500; }
 .cfg-grid td.rn { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
 
@@ -1746,3 +1815,24 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .upd-sub { color: var(--ink-3); font-size: 11.5px; line-height: 1.3; }
 .upd-bar .btn { flex: none; }
 
+
+/* ---------------- 渠道体检 ---------------- */
+.ch-check { flex: 0 0 auto; height: 26px; padding: 0 10px; font-size: 11.5px; white-space: nowrap; }
+.ck-panel { width: 760px; max-width: 96vw; }
+.ck-t { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ck-x { flex: 0 0 auto; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--ink-3); font: 18px/1 var(--sans); cursor: pointer; }
+.ck-x:hover { background: var(--line); color: var(--ink); }
+.ck-list { margin: 10px 20px 0; max-height: 52vh; overflow: auto;
+  border: 1px solid var(--line-soft); border-radius: var(--r-sm); }
+.ck-row { display: grid; grid-template-columns: 132px minmax(0,1.5fr) minmax(0,1fr); gap: 10px;
+  align-items: baseline; padding: 6px 10px; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+.ck-row:last-child { border-bottom: 0; }
+.ck-row b { font-weight: 600; color: var(--ink-2); font-family: var(--mono); font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-row .ck-t2 { color: var(--ink); font-family: var(--mono); font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-row .ck-i { color: var(--ink-3); font-size: 11.5px; }
+.ck-row.ck-noOp .ck-i { color: var(--warn-ink); }
+.ck-row.ck-miss .ck-i { color: var(--warn-ink); }
+.ck-row.ck-conflict .ck-i { color: var(--bad-ink); }

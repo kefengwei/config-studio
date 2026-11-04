@@ -391,13 +391,21 @@ fn save_file(app: AppHandle, state: State<'_, AppState>, name: String, contents:
   let root = current_root(&state)?;
   let file_name = safe_name(&name)?;
   let path = configs_of(&root).join(&file_name);
-  if !path.is_file() {
-    return Err(format!("文件不存在：{}", file_name));
+  // 文件不存在也允许写：渠道覆盖文件（Config_X.<渠道>.json）第一次提覆盖时就是新建。
+  // safe_name 已经挡掉路径穿越，这里只额外要求必须是 .json。
+  if !file_name.to_lowercase().ends_with(".json") {
+    return Err(format!("只能写 .json 文件：{}", file_name));
   }
-  // 1) 先备份原文件
-  let backup_id = format!("{}--{}", stamp(), file_name);
-  let bdir = backups_dir(&app)?;
-  fs::copy(&path, bdir.join(&backup_id)).map_err(|e| format!("备份失败：{}", e))?;
+  let existed = path.is_file();
+  // 1) 先备份原文件（新建时没有原内容，backup 返回空串）
+  let backup_id = if existed {
+    let id = format!("{}--{}", stamp(), file_name);
+    let bdir = backups_dir(&app)?;
+    fs::copy(&path, bdir.join(&id)).map_err(|e| format!("备份失败：{}", e))?;
+    id
+  } else {
+    String::new()
+  };
   // 2) 临时文件 + rename 覆盖（同目录，原子替换）
   let tmp = path.with_extension("json.tmp");
   fs::write(&tmp, contents.as_bytes()).map_err(|e| format!("写入失败：{}", e))?;

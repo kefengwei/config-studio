@@ -95,11 +95,17 @@ try {
       <span>配置表</span>
       <span class="side-count" id="table-count">—</span>
     </div>
+    <div class="ch-bar" id="ch-bar" hidden>
+      <label class="ch-lab" for="ch-sel">视角</label>
+      <select id="ch-sel" title="基础表：不叠加任何渠道补丁"></select>
+      <button class="btn ch-check" id="ch-check" title="扫一遍所有渠道覆盖文件，把不会生效的行列出来">体检</button>
+    </div>
     <div class="side-filter">
       <span class="sf-wrap">
         <input id="table-filter" type="search" placeholder="筛选表名…" autocomplete="off" class="w-full" />
         <button class="sf-x" type="button" data-sf-clear hidden title="清除（Esc）">×</button>
       </span>
+      <button class="ch-only" id="ch-only" type="button" hidden title="只看这个渠道有覆盖的表">覆盖</button>
     </div>
     <div id="table-list" class="table-list flex-1 overflow-y-auto min-h-0"></div>
   </aside>
